@@ -1,0 +1,465 @@
+/**
+ * FIPE Price Tracker - Frontend JavaScript
+ * 
+ * This file handles all the interactive functionality:
+ * - Loading data from the API
+ * - Updating cascading dropdowns
+ * - Rendering the Plotly chart
+ * - Calculating statistics
+ */
+
+// Global variables to store state
+let availableMonths = [];
+let currentChartData = null;
+
+/**
+ * Format a number as Brazilian currency (R$ 1.234,56)
+ */
+function formatBRL(value) {
+    return new Intl.NumberFormat('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+    }).format(value);
+}
+
+/**
+ * Show loading spinner and hide chart
+ */
+function showLoading() {
+    document.getElementById('loadingSpinner').style.display = 'block';
+    document.getElementById('priceChart').style.display = 'none';
+    document.getElementById('errorMessage').classList.add('d-none');
+}
+
+/**
+ * Hide loading spinner and show chart
+ */
+function hideLoading() {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    document.getElementById('priceChart').style.display = 'block';
+}
+
+/**
+ * Show error message
+ */
+function showError(message) {
+    document.getElementById('loadingSpinner').style.display = 'none';
+    document.getElementById('priceChart').style.display = 'none';
+    document.getElementById('errorText').textContent = message;
+    document.getElementById('errorMessage').classList.remove('d-none');
+}
+
+/**
+ * Load all brands from the API
+ */
+async function loadBrands() {
+    try {
+        const response = await fetch('/api/brands');
+        const brands = await response.json();
+        
+        const brandSelect = document.getElementById('brandSelect');
+        brandSelect.innerHTML = '<option value="">Selecione uma marca</option>';
+        
+        brands.forEach(brand => {
+            const option = document.createElement('option');
+            option.value = brand.id;
+            option.textContent = brand.name;
+            brandSelect.appendChild(option);
+        });
+        
+        return brands;
+    } catch (error) {
+        console.error('Error loading brands:', error);
+        showError('Erro ao carregar marcas');
+    }
+}
+
+/**
+ * Load models for a specific brand
+ */
+async function loadModels(brandId) {
+    try {
+        const response = await fetch(`/api/models/${brandId}`);
+        const models = await response.json();
+        
+        const modelSelect = document.getElementById('modelSelect');
+        modelSelect.innerHTML = '<option value="">Selecione um modelo</option>';
+        modelSelect.disabled = false;
+        
+        models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.id;
+            option.textContent = model.name;
+            modelSelect.appendChild(option);
+        });
+        
+        // Reset year dropdown
+        const yearSelect = document.getElementById('yearSelect');
+        yearSelect.innerHTML = '<option value="">Selecione um modelo</option>';
+        yearSelect.disabled = true;
+        
+        return models;
+    } catch (error) {
+        console.error('Error loading models:', error);
+        showError('Erro ao carregar modelos');
+    }
+}
+
+/**
+ * Load years for a specific model
+ */
+async function loadYears(modelId) {
+    try {
+        const response = await fetch(`/api/years/${modelId}`);
+        const years = await response.json();
+        
+        const yearSelect = document.getElementById('yearSelect');
+        yearSelect.innerHTML = '<option value="">Selecione um ano</option>';
+        yearSelect.disabled = false;
+        
+        years.forEach(year => {
+            const option = document.createElement('option');
+            option.value = year.id;
+            option.textContent = year.description;
+            yearSelect.appendChild(option);
+        });
+        
+        return years;
+    } catch (error) {
+        console.error('Error loading years:', error);
+        showError('Erro ao carregar anos');
+    }
+}
+
+/**
+ * Load all available months from the database
+ */
+async function loadMonths() {
+    try {
+        const response = await fetch('/api/months');
+        availableMonths = await response.json();
+        
+        const startMonthSelect = document.getElementById('startMonth');
+        const endMonthSelect = document.getElementById('endMonth');
+        
+        // Clear existing options
+        startMonthSelect.innerHTML = '';
+        endMonthSelect.innerHTML = '';
+        
+        // Add all months to both dropdowns
+        availableMonths.forEach(month => {
+            const startOption = document.createElement('option');
+            startOption.value = month.date;
+            startOption.textContent = month.label;
+            startMonthSelect.appendChild(startOption);
+            
+            const endOption = document.createElement('option');
+            endOption.value = month.date;
+            endOption.textContent = month.label;
+            endMonthSelect.appendChild(endOption);
+        });
+        
+        // Set default date range (first to last month)
+        if (availableMonths.length > 0) {
+            startMonthSelect.value = availableMonths[0].date;
+            endMonthSelect.value = availableMonths[availableMonths.length - 1].date;
+            startMonthSelect.disabled = false;
+            endMonthSelect.disabled = false;
+        }
+        
+        return availableMonths;
+    } catch (error) {
+        console.error('Error loading months:', error);
+        showError('Erro ao carregar meses disponíveis');
+    }
+}
+
+/**
+ * Fetch and display chart data
+ */
+async function updateChart() {
+    const yearId = document.getElementById('yearSelect').value;
+    const startDate = document.getElementById('startMonth').value;
+    const endDate = document.getElementById('endMonth').value;
+    
+    // Validate selections
+    if (!yearId) {
+        alert('Por favor, selecione um veículo');
+        return;
+    }
+    
+    if (!startDate || !endDate) {
+        alert('Por favor, selecione o período');
+        return;
+    }
+    
+    // Validate date range
+    if (new Date(startDate) > new Date(endDate)) {
+        alert('O mês inicial deve ser anterior ao mês final');
+        return;
+    }
+    
+    showLoading();
+    
+    try {
+        const response = await fetch('/api/chart-data', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                year_id: parseInt(yearId),
+                start_date: startDate,
+                end_date: endDate
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Erro ao buscar dados');
+        }
+        
+        const data = await response.json();
+        currentChartData = data;
+        
+        // Display car information
+        displayCarInfo(data.car_info);
+        
+        // Render the chart
+        renderChart(data.data);
+        
+        // Update statistics
+        updateStatistics(data.data);
+        
+        hideLoading();
+    } catch (error) {
+        console.error('Error updating chart:', error);
+        showError('Erro ao carregar dados do gráfico. Verifique sua seleção.');
+    }
+}
+
+/**
+ * Display car information banner
+ */
+function displayCarInfo(carInfo) {
+    const carInfoDiv = document.getElementById('carInfo');
+    const titleSpan = document.getElementById('carInfoTitle');
+    const detailsP = document.getElementById('carInfoDetails');
+    
+    titleSpan.textContent = `${carInfo.brand} ${carInfo.model}`;
+    detailsP.textContent = `Ano/Combustível: ${carInfo.year}`;
+    
+    carInfoDiv.classList.remove('d-none');
+}
+
+/**
+ * Render the Plotly chart
+ */
+function renderChart(data) {
+    // Prepare data for Plotly
+    const dates = data.map(d => d.label);
+    const prices = data.map(d => d.price);
+    
+    // Create the trace (line)
+    const trace = {
+        x: dates,
+        y: prices,
+        type: 'scatter',
+        mode: 'lines+markers',
+        name: 'Preço',
+        line: {
+            color: '#0d6efd',
+            width: 3
+        },
+        marker: {
+            size: 6,
+            color: '#0d6efd'
+        },
+        hovertemplate: '<b>%{x}</b><br>' +
+                      'Preço: R$ %{y:,.2f}<br>' +
+                      '<extra></extra>'
+    };
+    
+    // Layout configuration
+    const layout = {
+        title: {
+            text: 'Evolução do Preço FIPE',
+            font: {
+                size: 20,
+                family: 'Arial, sans-serif'
+            }
+        },
+        xaxis: {
+            title: 'Período',
+            tickangle: -45,
+            automargin: true
+        },
+        yaxis: {
+            title: 'Preço (R$)',
+            tickformat: ',.0f',
+            automargin: true
+        },
+        hovermode: 'closest',
+        plot_bgcolor: '#f8f9fa',
+        paper_bgcolor: 'white',
+        margin: {
+            l: 80,
+            r: 40,
+            t: 80,
+            b: 100
+        }
+    };
+    
+    // Configuration options
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+        toImageButtonOptions: {
+            format: 'png',
+            filename: 'fipe_price_chart',
+            height: 600,
+            width: 1200,
+            scale: 2
+        }
+    };
+    
+    // Render the chart
+    Plotly.newPlot('priceChart', [trace], layout, config);
+}
+
+/**
+ * Calculate and display statistics
+ */
+function updateStatistics(data) {
+    if (!data || data.length === 0) return;
+    
+    const prices = data.map(d => d.price);
+    const currentPrice = prices[prices.length - 1];
+    const firstPrice = prices[0];
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    
+    // Calculate price change (percentage and absolute)
+    const priceChange = currentPrice - firstPrice;
+    const priceChangePercent = ((priceChange / firstPrice) * 100).toFixed(2);
+    
+    // Update the DOM
+    document.getElementById('currentPrice').textContent = formatBRL(currentPrice);
+    document.getElementById('minPrice').textContent = formatBRL(minPrice);
+    document.getElementById('maxPrice').textContent = formatBRL(maxPrice);
+    
+    // Format price change with color
+    const priceChangeElement = document.getElementById('priceChange');
+    const changeText = `${priceChangePercent > 0 ? '+' : ''}${priceChangePercent}%`;
+    priceChangeElement.textContent = changeText;
+    
+    // Add color based on change direction
+    if (priceChange > 0) {
+        priceChangeElement.className = 'mb-0 text-success';
+    } else if (priceChange < 0) {
+        priceChangeElement.className = 'mb-0 text-danger';
+    } else {
+        priceChangeElement.className = 'mb-0 text-secondary';
+    }
+}
+
+/**
+ * Load default car and display it
+ */
+async function loadDefaultCar() {
+    try {
+        showLoading();
+        
+        // Get default car selections
+        const response = await fetch('/api/default-car');
+        const defaultCar = await response.json();
+        
+        // Load all the dropdowns
+        await loadBrands();
+        await loadMonths();
+        
+        // Set the brand
+        document.getElementById('brandSelect').value = defaultCar.brand_id;
+        
+        // Load and set the model
+        await loadModels(defaultCar.brand_id);
+        document.getElementById('modelSelect').value = defaultCar.model_id;
+        
+        // Load and set the year
+        await loadYears(defaultCar.model_id);
+        document.getElementById('yearSelect').value = defaultCar.year_id;
+        
+        // Enable the update button
+        document.getElementById('updateChart').disabled = false;
+        
+        // Load the chart
+        await updateChart();
+        
+    } catch (error) {
+        console.error('Error loading default car:', error);
+        showError('Erro ao carregar veículo padrão');
+    }
+}
+
+/**
+ * Initialize event listeners
+ */
+function initEventListeners() {
+    // Brand selection change
+    document.getElementById('brandSelect').addEventListener('change', async (e) => {
+        const brandId = e.target.value;
+        if (brandId) {
+            await loadModels(brandId);
+        } else {
+            // Reset model and year dropdowns
+            document.getElementById('modelSelect').innerHTML = '<option value="">Selecione uma marca</option>';
+            document.getElementById('modelSelect').disabled = true;
+            document.getElementById('yearSelect').innerHTML = '<option value="">Selecione um modelo</option>';
+            document.getElementById('yearSelect').disabled = true;
+        }
+    });
+    
+    // Model selection change
+    document.getElementById('modelSelect').addEventListener('change', async (e) => {
+        const modelId = e.target.value;
+        if (modelId) {
+            await loadYears(modelId);
+        } else {
+            // Reset year dropdown
+            document.getElementById('yearSelect').innerHTML = '<option value="">Selecione um modelo</option>';
+            document.getElementById('yearSelect').disabled = true;
+        }
+    });
+    
+    // Year selection change - enable update button
+    document.getElementById('yearSelect').addEventListener('change', (e) => {
+        const updateBtn = document.getElementById('updateChart');
+        updateBtn.disabled = !e.target.value;
+    });
+    
+    // Update button click
+    document.getElementById('updateChart').addEventListener('click', updateChart);
+    
+    // Enter key in selects triggers update
+    ['brandSelect', 'modelSelect', 'yearSelect', 'startMonth', 'endMonth'].forEach(id => {
+        document.getElementById(id).addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !document.getElementById('updateChart').disabled) {
+                updateChart();
+            }
+        });
+    });
+}
+
+/**
+ * Initialize the application when DOM is loaded
+ */
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('FIPE Price Tracker initialized');
+    
+    // Set up event listeners
+    initEventListeners();
+    
+    // Load default car and chart
+    loadDefaultCar();
+});

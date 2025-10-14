@@ -1,0 +1,17 @@
+# FIPE Price Tracker - Python Dependencies
+#
+# Install all dependencies with:
+# pip install -r requirements.txt
+
+# Web Framework
+Flask==3.0.0
+
+# Database ORM
+SQLAlchemy==2.0.23
+
+# For PostgreSQL support (optional, only needed in production)
+# Uncomment the line below if you plan to use PostgreSQL
+# psycopg2-binary==2.9.9
+
+# Development dependencies (optional)
+# python-dotenv==1.0.0  # For managing environment variables
