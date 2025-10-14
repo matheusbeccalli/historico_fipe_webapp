@@ -15,22 +15,31 @@ Uma aplicação web para visualizar o histórico de preços de veículos da Tabe
 ## 🗂️ Estrutura do Projeto
 
 ```
-fipe_webapp/
+historico_fipe_webapp/
 │
 ├── app.py                          # Aplicação principal Flask
-├── config.py                       # Configurações do banco de dados
+├── config.py                       # Configurações (usa .env)
 ├── webapp_database_models.py       # Modelos do banco de dados
+├── generate_secret_key.py          # Gerador de chaves seguras
 ├── requirements.txt                # Dependências Python
-├── README.md                       # Este arquivo
+├── .env                            # Variáveis de ambiente (não commitado)
+├── .env.example                    # Template de configuração
 │
 ├── templates/                      # Templates HTML
 │   └── index.html                  # Página principal
 │
-└── static/                         # Arquivos estáticos
-    ├── css/
-    │   └── style.css              # Estilos customizados
-    └── js/
-        └── app.js                 # JavaScript frontend
+├── static/                         # Arquivos estáticos
+│   ├── css/
+│   │   └── style.css              # Estilos customizados
+│   └── js/
+│       └── app.js                 # JavaScript frontend
+│
+├── docs/                           # 📚 Documentação
+│   ├── database_schema.md         # Estrutura do banco de dados
+│   └── ENV_SETUP.md               # Guia de configuração
+│
+└── examples/                       # 💡 Exemplos de código
+    └── example_queries.py         # Queries SQLAlchemy avançadas
 ```
 
 ## 🚀 Instalação e Configuração
@@ -67,13 +76,19 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Passo 3: Configure o banco de dados
+### Passo 3: Configure as variáveis de ambiente
 
-Edite o arquivo `config.py` e ajuste o caminho do banco de dados:
+Copie o arquivo de exemplo e edite com suas configurações:
 
-```python
-DATABASE_URL = 'sqlite:///C:/Users/seu_usuario/caminho/para/fipe_data.db'
+```bash
+# Copie o template
+cp .env.example .env
+
+# Edite .env e ajuste o caminho do banco de dados
+# DATABASE_URL=sqlite:///C:/Users/seu_usuario/caminho/para/fipe_data.db
 ```
+
+**Veja [docs/ENV_SETUP.md](docs/ENV_SETUP.md) para guia completo de configuração.**
 
 ### Passo 4: Execute a aplicação
 
@@ -103,18 +118,21 @@ export DATABASE_URL=postgresql://usuario:senha@localhost/fipe_db
 
 ### Variáveis de Ambiente
 
-Você pode configurar as seguintes variáveis de ambiente:
+Todas as configurações são gerenciadas via arquivo `.env`. Variáveis disponíveis:
 
-- `FLASK_ENV`: `development` ou `production`
-- `DATABASE_URL`: String de conexão do banco de dados
-- `SECRET_KEY`: Chave secreta para sessões Flask (importante em produção!)
+- `FLASK_ENV` - Ambiente (`development` ou `production`)
+- `DATABASE_URL` - String de conexão do banco de dados
+- `SECRET_KEY` - Chave secreta para sessões Flask
+- `DEFAULT_BRAND` - Marca padrão ao carregar a página
+- `DEFAULT_MODEL` - Modelo padrão ao carregar a página
+- `SQLALCHEMY_ECHO` - Mostrar queries SQL (`True` ou `False`)
 
-Exemplo com arquivo `.env`:
+Para gerar uma chave secreta segura:
+```bash
+python generate_secret_key.py
 ```
-FLASK_ENV=development
-DATABASE_URL=sqlite:///C:/Users/mathe/Desktop/Programming/fipe_scrapper/fipe_data.db
-SECRET_KEY=sua-chave-secreta-aqui
-```
+
+**📖 Documentação completa:** [docs/ENV_SETUP.md](docs/ENV_SETUP.md)
 
 ## 🎯 Como Usar
 
@@ -141,11 +159,11 @@ SECRET_KEY=sua-chave-secreta-aqui
 
 ## 🔧 Personalizando o Veículo Padrão
 
-Edite o arquivo `config.py` para mudar o veículo que aparece ao carregar a página:
+Edite o arquivo `.env` para mudar o veículo que aparece ao carregar a página:
 
-```python
-DEFAULT_BRAND = "Volkswagen"
-DEFAULT_MODEL = "Gol"  # Busca modelos contendo "Gol"
+```bash
+DEFAULT_BRAND=Volkswagen
+DEFAULT_MODEL=Gol  # Busca modelos contendo "Gol"
 ```
 
 ## 📡 Endpoints da API
@@ -167,8 +185,9 @@ pip install -r requirements.txt
 ```
 
 ### Erro: "Unable to open database file"
-- Verifique se o caminho do banco em `config.py` está correto
+- Verifique se o caminho do banco em `.env` (variável `DATABASE_URL`) está correto
 - Verifique se você tem permissão de leitura no arquivo
+- Veja o guia de configuração: [docs/ENV_SETUP.md](docs/ENV_SETUP.md)
 
 ### Gráfico não carrega
 - Abra o Console do Navegador (F12) para ver erros
@@ -209,13 +228,22 @@ Algumas ideias para expandir o projeto:
 - [ ] Autenticação de usuários
 - [ ] API REST completa
 
-## 📝 Notas para Iniciantes
+## 📚 Documentação Adicional
 
-Este projeto foi desenvolvido com comentários detalhados para ajudar iniciantes em Python/Flask:
+Este projeto inclui documentação detalhada:
 
-- **app.py**: Contém explicações sobre cada rota e função
-- **app.js**: Comentários sobre como o JavaScript interage com a API
-- **webapp_database_models.py**: Documentação sobre os modelos de dados
+- **[docs/database_schema.md](docs/database_schema.md)** - Estrutura completa do banco de dados com ERD
+- **[docs/ENV_SETUP.md](docs/ENV_SETUP.md)** - Guia completo de configuração de variáveis de ambiente
+- **[examples/example_queries.py](examples/example_queries.py)** - Exemplos de queries SQLAlchemy avançadas
+- **[QUICKSTART.md](QUICKSTART.md)** - Guia rápido de instalação (5 minutos)
+- **[CLAUDE.md](CLAUDE.md)** - Guia técnico para desenvolvedores e IA assistentes
+
+### Notas para Iniciantes
+
+O código está comentado para ajudar iniciantes em Python/Flask:
+- **app.py** - Explicações sobre cada rota e função
+- **static/js/app.js** - Como o JavaScript interage com a API
+- **webapp_database_models.py** - Documentação dos modelos de dados
 
 Não hesite em explorar o código e fazer modificações!
 

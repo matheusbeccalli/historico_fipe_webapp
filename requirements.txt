@@ -9,9 +9,9 @@ Flask==3.0.0
 # Database ORM
 SQLAlchemy==2.0.23
 
+# Environment variable management
+python-dotenv==1.0.0
+
 # For PostgreSQL support (optional, only needed in production)
 # Uncomment the line below if you plan to use PostgreSQL
 # psycopg2-binary==2.9.9
-
-# Development dependencies (optional)
-# python-dotenv==1.0.0  # For managing environment variables

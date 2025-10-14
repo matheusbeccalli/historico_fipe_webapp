@@ -7,6 +7,10 @@ SQLite (for development) and PostgreSQL (for production).
 
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 class Config:
     """
@@ -22,33 +26,28 @@ class Config:
     # Database configuration
     # By default, uses SQLite for development
     # Set DATABASE_URL environment variable to use PostgreSQL
-    DATABASE_URL = os.getenv(
-        'DATABASE_URL',
-        'sqlite:///C:/Users/mathe/Desktop/Programming/fipe_scrapper/fipe_data.db'
-    )
+    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///fipe_data.db')
     
     # SQLAlchemy settings
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # Reduces overhead
-    SQLALCHEMY_ECHO = False  # Set to True to see SQL queries (useful for debugging)
+    SQLALCHEMY_ECHO = os.getenv('SQLALCHEMY_ECHO', 'False').lower() == 'true'  # Set to True to see SQL queries
     
     # Default car to show when page loads
     # You can change these to any car in your database
-    DEFAULT_BRAND = "Volkswagen"
-    DEFAULT_MODEL = "Gol"  # Will search for models containing "Gol"
+    DEFAULT_BRAND = os.getenv('DEFAULT_BRAND', 'Volkswagen')
+    DEFAULT_MODEL = os.getenv('DEFAULT_MODEL', 'Gol')  # Will search for models containing "Gol"
     
 
 class DevelopmentConfig(Config):
     """Development configuration - more verbose for debugging"""
     DEBUG = True
-    SQLALCHEMY_ECHO = False  # Set to True to see all SQL queries
 
 
 class ProductionConfig(Config):
     """Production configuration - optimized for performance"""
     DEBUG = False
-    SQLALCHEMY_ECHO = False
-    
-    # In production, you MUST set these environment variables:
+
+    # In production, you MUST set these environment variables in .env:
     # - SECRET_KEY: A strong random secret key
     # - DATABASE_URL: PostgreSQL connection string
     #   Example: postgresql://user:password@localhost/fipe_db

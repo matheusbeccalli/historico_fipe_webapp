@@ -32,6 +32,15 @@ setup.bat
 chmod +x setup.sh && ./setup.sh
 ```
 
+### Environment Configuration
+```bash
+# Copy .env.example to .env and update values
+cp .env.example .env
+
+# Generate a secure secret key for production
+python generate_secret_key.py
+```
+
 ## Architecture Overview
 
 ### Data Flow Architecture
@@ -64,12 +73,19 @@ This join pattern is used throughout the application (see app.py:244-256).
 
 ### Configuration System
 
-The application uses environment-aware configuration in `config.py`:
+The application uses **environment-based configuration** with `.env` files:
+- All sensitive configuration is stored in `.env` (never committed to git)
+- `config.py` loads environment variables using `python-dotenv`
 - `DevelopmentConfig` (default) - SQLite database
 - `ProductionConfig` - PostgreSQL database
 - Controlled via `FLASK_ENV` environment variable
 
-**Important**: The database path in `config.py:27` is hardcoded and must be updated when working in different environments.
+**Important environment variables**:
+- `DATABASE_URL` - Database connection string
+- `SECRET_KEY` - Flask session secret (use `generate_secret_key.py` to create)
+- `DEFAULT_BRAND` - Default brand to show on page load
+- `DEFAULT_MODEL` - Default model to show on page load
+- `SQLALCHEMY_ECHO` - Set to "True" to see SQL queries in logs
 
 ### API Design Pattern
 
@@ -93,11 +109,38 @@ This pattern is implemented in `static/js/app.js` and ensures the UI remains res
 
 ## File Structure and Responsibilities
 
+```
+historico_fipe_webapp/
+├── app.py                      # Main Flask application
+├── config.py                   # Environment-based configuration
+├── webapp_database_models.py   # SQLAlchemy ORM models
+├── generate_secret_key.py      # Secure key generator
+├── .env                        # Environment variables (not in git)
+├── .env.example                # Environment template
+│
+├── templates/                  # HTML templates
+│   └── index.html             # Single-page application
+│
+├── static/                     # Frontend assets
+│   ├── js/app.js              # JavaScript for API calls and charts
+│   └── css/style.css          # Custom styles
+│
+├── docs/                       # Documentation
+│   ├── README.md              # Documentation index
+│   ├── database_schema.md     # Database structure reference
+│   └── ENV_SETUP.md           # Environment configuration guide
+│
+└── examples/                   # Code examples
+    ├── README.md              # Examples index
+    └── example_queries.py     # SQLAlchemy query patterns
+```
+
 ### Core Application Files
 
 - **app.py** (413 lines) - Main Flask application with all routes and API endpoints
-- **config.py** (74 lines) - Environment-based configuration system
+- **config.py** - Environment-based configuration system using python-dotenv
 - **webapp_database_models.py** (457 lines) - SQLAlchemy ORM models with relationships
+- **.env** - Environment variables (not committed to git, copy from .env.example)
 
 ### Frontend Files
 
@@ -105,9 +148,15 @@ This pattern is implemented in `static/js/app.js` and ensures the UI remains res
 - **static/js/app.js** - Handles all API calls, dropdown cascading, and chart rendering
 - **static/css/style.css** - Custom styles
 
-### Utility Files
+### Documentation
 
-- **example_queries.py** (586 lines) - Contains complex SQLAlchemy query examples for analytics features (not currently used in webapp but useful for reference)
+- **docs/database_schema.md** - Complete database schema documentation with ERD
+- **docs/ENV_SETUP.md** - Comprehensive environment configuration guide
+
+### Examples and Utilities
+
+- **examples/example_queries.py** (586 lines) - Complex SQLAlchemy query examples for analytics (reference only, not used in webapp)
+- **generate_secret_key.py** - Helper script to generate secure random keys for Flask SECRET_KEY
 
 ## Critical Implementation Details
 
@@ -129,7 +178,7 @@ Use `format_price_brl()` helper function (webapp_database_models.py:341) for con
 
 ### Default Car Selection
 
-The application loads with a default car (configured in config.py:36-37). The `/api/default-car` endpoint (app.py:308) uses fuzzy matching with `ILIKE` to find models containing the configured model name.
+The application loads with a default car (configured via `DEFAULT_BRAND` and `DEFAULT_MODEL` environment variables in `.env`). The `/api/default-car` endpoint (app.py:308) uses fuzzy matching with `ILIKE` to find models containing the configured model name.
 
 ### Error Handling Pattern
 
@@ -159,9 +208,9 @@ The chart data format is defined in `/api/chart-data` (app.py:197-305). Each dat
 ### Changing the Database
 
 To switch from SQLite to PostgreSQL:
-1. Set `DATABASE_URL` environment variable to PostgreSQL connection string
-2. Install `psycopg2-binary` (uncomment line 14 in requirements.txt)
-3. Set `FLASK_ENV=production`
+1. Update `DATABASE_URL` in `.env` to PostgreSQL connection string (e.g., `postgresql://user:password@localhost/fipe_db`)
+2. Install `psycopg2-binary` (uncomment line in requirements.txt)
+3. Set `FLASK_ENV=production` in `.env`
 
 ## Database Query Patterns
 
