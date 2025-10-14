@@ -152,7 +152,7 @@ curl http://127.0.0.1:5000/api/months
 2. ✅ Teste a aplicação
 3. 📖 Leia o README.md completo
 4. 🔧 Customize cores e estilos em `static/css/style.css`
-5. 🚀 Faça deploy (Heroku, PythonAnywhere, etc.)
+5. 🚀 Faça deploy (Heroku, PythonAnywhere, Render, AWS, etc.)
 
 ## 💡 Dicas
 

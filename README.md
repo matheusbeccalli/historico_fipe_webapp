@@ -34,12 +34,9 @@ historico_fipe_webapp/
 │   └── js/
 │       └── app.js                 # JavaScript frontend
 │
-├── docs/                           # 📚 Documentação
-│   ├── database_schema.md         # Estrutura do banco de dados
-│   └── ENV_SETUP.md               # Guia de configuração
-│
-└── examples/                       # 💡 Exemplos de código
-    └── example_queries.py         # Queries SQLAlchemy avançadas
+└── docs/                           # 📚 Documentação
+    ├── database_schema.md         # Estrutura do banco de dados
+    └── ENV_SETUP.md               # Guia de configuração
 ```
 
 ## 🚀 Instalação e Configuração
@@ -234,7 +231,6 @@ Este projeto inclui documentação detalhada:
 
 - **[docs/database_schema.md](docs/database_schema.md)** - Estrutura completa do banco de dados com ERD
 - **[docs/ENV_SETUP.md](docs/ENV_SETUP.md)** - Guia completo de configuração de variáveis de ambiente
-- **[examples/example_queries.py](examples/example_queries.py)** - Exemplos de queries SQLAlchemy avançadas
 - **[QUICKSTART.md](QUICKSTART.md)** - Guia rápido de instalação (5 minutos)
 - **[CLAUDE.md](CLAUDE.md)** - Guia técnico para desenvolvedores e IA assistentes
 

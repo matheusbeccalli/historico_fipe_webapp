@@ -125,14 +125,10 @@ historico_fipe_webapp/
 │   ├── js/app.js              # JavaScript for API calls and charts
 │   └── css/style.css          # Custom styles
 │
-├── docs/                       # Documentation
-│   ├── README.md              # Documentation index
-│   ├── database_schema.md     # Database structure reference
-│   └── ENV_SETUP.md           # Environment configuration guide
-│
-└── examples/                   # Code examples
-    ├── README.md              # Examples index
-    └── example_queries.py     # SQLAlchemy query patterns
+└── docs/                       # Documentation
+    ├── README.md              # Documentation index
+    ├── database_schema.md     # Database structure reference
+    └── ENV_SETUP.md           # Environment configuration guide
 ```
 
 ### Core Application Files
@@ -153,9 +149,8 @@ historico_fipe_webapp/
 - **docs/database_schema.md** - Complete database schema documentation with ERD
 - **docs/ENV_SETUP.md** - Comprehensive environment configuration guide
 
-### Examples and Utilities
+### Utilities
 
-- **examples/example_queries.py** (586 lines) - Complex SQLAlchemy query examples for analytics (reference only, not used in webapp)
 - **generate_secret_key.py** - Helper script to generate secure random keys for Flask SECRET_KEY
 
 ## Critical Implementation Details
