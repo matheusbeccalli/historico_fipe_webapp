@@ -305,14 +305,123 @@ def get_chart_data():
         db.close()
 
 
+@app.route('/api/price', methods=['POST'])
+def get_price():
+    """
+    Get price information for a specific car at a specific month.
+
+    Similar to FIPE's /ConsultarValorComTodosParametros endpoint.
+    This returns a single price data point instead of full history.
+
+    Expects JSON POST body:
+    {
+        "brand": "Volkswagen",
+        "model": "Gol",
+        "year": "2024 Flex",
+        "month": "2024-01-01"
+    }
+
+    Returns:
+        JSON object with price information:
+        {
+            "brand": "Volkswagen",
+            "model": "Gol 1.0 12V MCV",
+            "year": "2024 Flex",
+            "month": "janeiro/2024",
+            "month_date": "2024-01-01",
+            "price": 56789.00,
+            "price_formatted": "R$ 56.789,00",
+            "fipe_code": "026011-6"
+        }
+    """
+    db = get_db()
+    try:
+        # Get parameters from POST request body
+        data = request.get_json()
+        brand_name = data.get('brand')
+        model_name = data.get('model')
+        year_desc = data.get('year')
+        month_date = data.get('month')
+
+        # Validate required parameters
+        if not all([brand_name, model_name, year_desc, month_date]):
+            return jsonify({
+                "error": "Missing required parameters. Need: brand, model, year, month"
+            }), 400
+
+        # Convert month string to datetime object
+        try:
+            month_date = datetime.fromisoformat(month_date)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid month date format. Use YYYY-MM-DD"}), 400
+
+        # Build query joining all tables
+        result = (
+            db.query(
+                Brand.brand_name,
+                CarModel.model_name,
+                ModelYear.year_description,
+                CarPrice.price,
+                CarPrice.fipe_code,
+                ReferenceMonth.month_date
+            )
+            .join(CarModel.brand)
+            .join(ModelYear.car_model)
+            .join(CarPrice.model_year)
+            .join(CarPrice.reference_month)
+            .filter(
+                Brand.brand_name.ilike(f'%{brand_name}%'),
+                CarModel.model_name.ilike(f'%{model_name}%'),
+                ModelYear.year_description == year_desc,
+                ReferenceMonth.month_date == month_date
+            )
+            .first()
+        )
+
+        # Check if we found data
+        if not result:
+            return jsonify({
+                "error": "No price data found for the specified car and month",
+                "searched_for": {
+                    "brand": brand_name,
+                    "model": model_name,
+                    "year": year_desc,
+                    "month": month_date.isoformat()
+                }
+            }), 404
+
+        # Import formatting function
+        from webapp_database_models import format_price_brl
+
+        # Format response
+        return jsonify({
+            "brand": result.brand_name,
+            "model": result.model_name,
+            "year": result.year_description,
+            "month": format_month_portuguese(result.month_date),
+            "month_date": result.month_date.isoformat(),
+            "price": float(result.price),
+            "price_formatted": format_price_brl(result.price),
+            "fipe_code": result.fipe_code
+        })
+
+    except Exception as e:
+        # Log the error and return a user-friendly message
+        app.logger.error(f"Error in get_price: {str(e)}")
+        return jsonify({"error": "An error occurred while fetching price data"}), 500
+
+    finally:
+        db.close()
+
+
 @app.route('/api/default-car', methods=['GET'])
 def get_default_car():
     """
     Get the default car to display when the page loads.
-    
+
     This finds a car based on the DEFAULT_BRAND and DEFAULT_MODEL
     settings in config.py.
-    
+
     Returns:
         JSON object with default selections:
         {

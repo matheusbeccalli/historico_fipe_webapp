@@ -171,7 +171,8 @@ A aplicação expõe os seguintes endpoints JSON:
 - `GET /api/models/<brand_id>` - Lista modelos de uma marca
 - `GET /api/years/<model_id>` - Lista anos de um modelo
 - `GET /api/months` - Lista todos os meses disponíveis
-- `POST /api/chart-data` - Retorna dados para o gráfico
+- `POST /api/chart-data` - Retorna dados para o gráfico (histórico completo)
+- `POST /api/price` - Retorna preço de um veículo específico em um mês específico
 - `GET /api/default-car` - Retorna o veículo padrão
 
 ## 🐛 Solução de Problemas

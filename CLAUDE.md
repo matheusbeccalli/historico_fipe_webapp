@@ -193,6 +193,54 @@ Follow the existing pattern in app.py:
 4. Return `jsonify()` response
 5. Always use `try-finally` to close session
 
+### API Endpoints Reference
+
+The application provides 7 RESTful endpoints:
+
+1. **GET /api/brands** - List all brands
+2. **GET /api/models/<brand_id>** - List models for a brand
+3. **GET /api/years/<model_id>** - List years for a model
+4. **GET /api/months** - List all available reference months
+5. **POST /api/chart-data** - Get price history (multiple months) for a vehicle
+6. **POST /api/price** - Get single price point for a vehicle at a specific month (NEW)
+7. **GET /api/default-car** - Get default vehicle selection
+
+### Single Price Lookup Endpoint
+
+The `/api/price` endpoint (app.py:308) provides direct price lookups similar to FIPE's `/ConsultarValorComTodosParametros`:
+
+**Request:**
+```json
+POST /api/price
+{
+  "brand": "Volkswagen",
+  "model": "Gol",
+  "year": "2024 Flex",
+  "month": "2024-01-01"
+}
+```
+
+**Response:**
+```json
+{
+  "brand": "Volkswagen",
+  "model": "Gol 1.0 12V MCV",
+  "year": "2024 Flex",
+  "month": "janeiro/2024",
+  "month_date": "2024-01-01",
+  "price": 56789.00,
+  "price_formatted": "R$ 56.789,00",
+  "fipe_code": "026011-6"
+}
+```
+
+**Key features:**
+- Uses fuzzy matching with `ILIKE` for brand and model names
+- Exact match required for year description and month date
+- Returns formatted price in Brazilian Real format
+- Includes FIPE code for reference
+- Returns 404 with search details if no data found
+
 ### Extending the Chart
 
 The chart data format is defined in `/api/chart-data` (app.py:197-305). Each data point must include:
