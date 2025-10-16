@@ -473,6 +473,7 @@ function renderChart(data) {
 
     // Premium layout configuration
     const layout = {
+        autosize: true,
         title: {
             text: 'Evolução do Preço FIPE',
             font: {
@@ -627,6 +628,7 @@ function renderComparisonChart() {
 
     // Premium layout configuration
     const layout = {
+        autosize: true,
         title: {
             text: 'Comparação de Preços FIPE',
             font: {
@@ -733,7 +735,12 @@ function renderComparisonChart() {
     };
 
     // Render the chart
-    Plotly.newPlot('priceChart', traces, layout, config);
+    Plotly.newPlot('priceChart', traces, layout, config).then(() => {
+        // Force resize to container width after initial render
+        window.requestAnimationFrame(() => {
+            Plotly.Plots.resize('priceChart');
+        });
+    });
 }
 
 /**
