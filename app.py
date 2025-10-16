@@ -162,7 +162,10 @@ def get_years(model_id):
 def get_months():
     """
     Get all available reference months from the database.
-    
+
+    Optional query parameter:
+        year_id: Filter months to only those available for this specific vehicle (ModelYear.id)
+
     Returns:
         JSON array of months in Portuguese format:
         [
@@ -173,13 +176,26 @@ def get_months():
     """
     db = get_db()
     try:
-        # Query all reference months, ordered chronologically
-        months = (
-            db.query(ReferenceMonth)
-            .order_by(ReferenceMonth.month_date)
-            .all()
-        )
-        
+        year_id = request.args.get('year_id', type=int)
+
+        if year_id:
+            # Query months that have price data for this specific vehicle
+            months = (
+                db.query(ReferenceMonth)
+                .join(CarPrice.reference_month)
+                .filter(CarPrice.model_year_id == year_id)
+                .order_by(ReferenceMonth.month_date)
+                .distinct()
+                .all()
+            )
+        else:
+            # Query all reference months, ordered chronologically
+            months = (
+                db.query(ReferenceMonth)
+                .order_by(ReferenceMonth.month_date)
+                .all()
+            )
+
         months_list = [
             {
                 "date": month.month_date.isoformat(),
@@ -187,9 +203,9 @@ def get_months():
             }
             for month in months
         ]
-        
+
         return jsonify(months_list)
-    
+
     finally:
         db.close()
 

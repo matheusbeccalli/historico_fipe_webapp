@@ -132,41 +132,45 @@ async function loadYears(modelId) {
 }
 
 /**
- * Load all available months from the database
+ * Load available months from the database
+ *
+ * @param {number|null} yearId - Optional year_id to filter months for a specific vehicle
  */
-async function loadMonths() {
+async function loadMonths(yearId = null) {
     try {
-        const response = await fetch('/api/months');
+        // Build URL with optional year_id parameter
+        const url = yearId ? `/api/months?year_id=${yearId}` : '/api/months';
+        const response = await fetch(url);
         availableMonths = await response.json();
-        
+
         const startMonthSelect = document.getElementById('startMonth');
         const endMonthSelect = document.getElementById('endMonth');
-        
+
         // Clear existing options
         startMonthSelect.innerHTML = '';
         endMonthSelect.innerHTML = '';
-        
+
         // Add all months to both dropdowns
         availableMonths.forEach(month => {
             const startOption = document.createElement('option');
             startOption.value = month.date;
             startOption.textContent = month.label;
             startMonthSelect.appendChild(startOption);
-            
+
             const endOption = document.createElement('option');
             endOption.value = month.date;
             endOption.textContent = month.label;
             endMonthSelect.appendChild(endOption);
         });
-        
-        // Set default date range (first to last month)
+
+        // Set default date range (first to last month available for this vehicle)
         if (availableMonths.length > 0) {
             startMonthSelect.value = availableMonths[0].date;
             endMonthSelect.value = availableMonths[availableMonths.length - 1].date;
             startMonthSelect.disabled = false;
             endMonthSelect.disabled = false;
         }
-        
+
         return availableMonths;
     } catch (error) {
         console.error('Error loading months:', error);
@@ -370,32 +374,34 @@ function updateStatistics(data) {
 async function loadDefaultCar() {
     try {
         showLoading();
-        
+
         // Get default car selections
         const response = await fetch('/api/default-car');
         const defaultCar = await response.json();
-        
+
         // Load all the dropdowns
         await loadBrands();
-        await loadMonths();
-        
+
         // Set the brand
         document.getElementById('brandSelect').value = defaultCar.brand_id;
-        
+
         // Load and set the model
         await loadModels(defaultCar.brand_id);
         document.getElementById('modelSelect').value = defaultCar.model_id;
-        
+
         // Load and set the year
         await loadYears(defaultCar.model_id);
         document.getElementById('yearSelect').value = defaultCar.year_id;
-        
+
+        // Load months for this specific vehicle
+        await loadMonths(defaultCar.year_id);
+
         // Enable the update button
         document.getElementById('updateChart').disabled = false;
-        
+
         // Load the chart
         await updateChart();
-        
+
     } catch (error) {
         console.error('Error loading default car:', error);
         showError('Erro ao carregar veículo padrão');
@@ -432,10 +438,21 @@ function initEventListeners() {
         }
     });
     
-    // Year selection change - enable update button
-    document.getElementById('yearSelect').addEventListener('change', (e) => {
+    // Year selection change - reload months for this vehicle and enable update button
+    document.getElementById('yearSelect').addEventListener('change', async (e) => {
+        const yearId = e.target.value;
         const updateBtn = document.getElementById('updateChart');
-        updateBtn.disabled = !e.target.value;
+
+        if (yearId) {
+            // Load months available for this specific vehicle
+            await loadMonths(parseInt(yearId));
+            updateBtn.disabled = false;
+        } else {
+            // No year selected - disable month selects and update button
+            document.getElementById('startMonth').disabled = true;
+            document.getElementById('endMonth').disabled = true;
+            updateBtn.disabled = true;
+        }
     });
     
     // Update button click
