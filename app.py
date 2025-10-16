@@ -11,7 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import json
 import requests
-from functools import reduce
+from functools import reduce, wraps
 
 # Import our database models and config
 from webapp_database_models import (
@@ -28,11 +28,17 @@ app.config.from_object(get_config())
 engine = create_engine(app.config['DATABASE_URL'])
 SessionLocal = sessionmaker(bind=engine)
 
+# Parse API keys from config and store as a set for fast lookup
+VALID_API_KEYS = set()
+api_keys_str = app.config.get('API_KEYS', '')
+if api_keys_str:
+    VALID_API_KEYS = {key.strip() for key in api_keys_str.split(',') if key.strip()}
+
 
 def get_db():
     """
     Create a new database session.
-    
+
     This is a helper function that creates a session and ensures
     it's properly closed after use (using try/finally pattern).
     """
@@ -44,15 +50,55 @@ def get_db():
         raise e
 
 
+def require_api_key(f):
+    """
+    Decorator to require API key authentication.
+
+    Expects the API key to be provided in the X-API-Key header.
+    Returns 401 Unauthorized if the key is missing or invalid.
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # Get API key from header
+        api_key = request.headers.get('X-API-Key')
+
+        # If no API keys are configured, allow access (for development)
+        if not VALID_API_KEYS:
+            app.logger.warning('No API keys configured - allowing access without authentication')
+            return f(*args, **kwargs)
+
+        # Check if API key is provided
+        if not api_key:
+            return jsonify({
+                'error': 'API key required',
+                'message': 'Please provide an API key in the X-API-Key header'
+            }), 401
+
+        # Check if API key is valid
+        if api_key not in VALID_API_KEYS:
+            app.logger.warning(f'Invalid API key attempt: {api_key[:8]}... from {request.remote_addr} accessing {request.path}')
+            return jsonify({
+                'error': 'Invalid API key',
+                'message': 'The provided API key is not valid'
+            }), 401
+
+        # API key is valid, log successful access and proceed with the request
+        app.logger.info(f'API access granted: key={api_key[:8]}... endpoint={request.path} method={request.method} ip={request.remote_addr}')
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 # ============================================================================
 # ROUTES - Web Pages
 # ============================================================================
 
 @app.route('/')
+@require_api_key
 def index():
     """
     Main page route.
-    
+
     Renders the index.html template with the default car information.
     The template will then load the actual data via JavaScript API calls.
     """
@@ -68,6 +114,7 @@ def index():
 # ============================================================================
 
 @app.route('/api/brands', methods=['GET'])
+@require_api_key
 def get_brands():
     """
     Get all available car brands.
@@ -97,6 +144,7 @@ def get_brands():
 
 
 @app.route('/api/models/<int:brand_id>', methods=['GET'])
+@require_api_key
 def get_models(brand_id):
     """
     Get all models for a specific brand.
@@ -129,6 +177,7 @@ def get_models(brand_id):
 
 
 @app.route('/api/years/<int:model_id>', methods=['GET'])
+@require_api_key
 def get_years(model_id):
     """
     Get all year/fuel combinations for a specific model.
@@ -161,6 +210,7 @@ def get_years(model_id):
 
 
 @app.route('/api/months', methods=['GET'])
+@require_api_key
 def get_months():
     """
     Get all available reference months from the database.
@@ -213,6 +263,7 @@ def get_months():
 
 
 @app.route('/api/chart-data', methods=['POST'])
+@require_api_key
 def get_chart_data():
     """
     Get price history data for a specific car within a date range.
@@ -324,6 +375,7 @@ def get_chart_data():
 
 
 @app.route('/api/compare-vehicles', methods=['POST'])
+@require_api_key
 def compare_vehicles():
     """
     Get price history data for multiple vehicles for comparison.
@@ -447,6 +499,7 @@ def compare_vehicles():
 
 
 @app.route('/api/price', methods=['POST'])
+@require_api_key
 def get_price():
     """
     Get price information for a specific car at a specific month.
@@ -556,6 +609,7 @@ def get_price():
 
 
 @app.route('/api/default-car', methods=['GET'])
+@require_api_key
 def get_default_car():
     """
     Get the default car to display when the page loads.
@@ -633,6 +687,7 @@ def get_default_car():
 
 
 @app.route('/api/economic-indicators', methods=['POST'])
+@require_api_key
 def get_economic_indicators():
     """
     Get economic indicators (IPCA and CDI) from Banco Central do Brasil API

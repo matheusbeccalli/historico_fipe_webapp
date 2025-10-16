@@ -36,6 +36,11 @@ class Config:
     # You can change these to any car in your database
     DEFAULT_BRAND = os.getenv('DEFAULT_BRAND', 'Volkswagen')
     DEFAULT_MODEL = os.getenv('DEFAULT_MODEL', 'Gol')  # Will search for models containing "Gol"
+
+    # API Key Authentication
+    # Comma-separated list of valid API keys
+    # Example: API_KEYS=key1,key2,key3
+    API_KEYS = os.getenv('API_KEYS', '')
     
 
 class DevelopmentConfig(Config):
