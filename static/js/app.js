@@ -65,7 +65,7 @@ function showError(message) {
 /**
  * Add vehicle to comparison list
  */
-function addVehicle() {
+async function addVehicle() {
     const brandSelect = document.getElementById('brandSelect');
     const modelSelect = document.getElementById('modelSelect');
     const yearSelect = document.getElementById('yearSelect');
@@ -99,6 +99,9 @@ function addVehicle() {
     selectedVehicles.push(vehicle);
     updateVehiclesUI();
     updateButtonsState();
+
+    // Auto-update chart when adding vehicle
+    await updateComparisonChart();
 }
 
 /**
@@ -869,6 +872,61 @@ function updateStatistics(data) {
 }
 
 /**
+ * Load default vehicle from API
+ */
+async function loadDefaultVehicle() {
+    try {
+        const response = await fetch('/api/default-car');
+        const defaultCar = await response.json();
+
+        if (!defaultCar.brand_id || !defaultCar.model_id || !defaultCar.year_id) {
+            return; // No default car available
+        }
+
+        // Select the brand
+        const brandSelect = document.getElementById('brandSelect');
+        brandSelect.value = defaultCar.brand_id;
+
+        // Load and select the model
+        await loadModels(defaultCar.brand_id);
+        const modelSelect = document.getElementById('modelSelect');
+        modelSelect.value = defaultCar.model_id;
+
+        // Load and select the year
+        await loadYears(defaultCar.model_id);
+        const yearSelect = document.getElementById('yearSelect');
+        yearSelect.value = defaultCar.year_id;
+
+        // Load months for this vehicle
+        await loadMonths(defaultCar.year_id);
+
+        // Add the vehicle to comparison automatically
+        const brandName = brandSelect.options[brandSelect.selectedIndex].text;
+        const modelName = modelSelect.options[modelSelect.selectedIndex].text;
+        const yearDesc = yearSelect.options[yearSelect.selectedIndex].text;
+
+        const vehicle = {
+            id: defaultCar.year_id,
+            brand: brandName,
+            model: modelName,
+            year: yearDesc,
+            color: VEHICLE_COLORS[0]
+        };
+
+        selectedVehicles.push(vehicle);
+        updateVehiclesUI();
+        updateButtonsState();
+
+        // Load and display the chart for the default vehicle
+        await updateComparisonChart();
+
+    } catch (error) {
+        console.error('Error loading default vehicle:', error);
+        // Don't show error to user - just continue without default
+    }
+}
+
+/**
  * Initialize app with default selections
  */
 async function initializeApp() {
@@ -876,14 +934,14 @@ async function initializeApp() {
         // Load all brands
         await loadBrands();
 
-        // Load all months
+        // Load all months (will be updated when vehicle is selected)
         await loadMonths();
+
+        // Load default vehicle and chart
+        await loadDefaultVehicle();
 
         // Hide loading spinner
         hideLoading();
-
-        // Clear the chart initially
-        document.getElementById('carInfo').classList.add('d-none');
 
     } catch (error) {
         console.error('Error initializing app:', error);
