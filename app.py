@@ -321,6 +321,129 @@ def get_chart_data():
         db.close()
 
 
+@app.route('/api/compare-vehicles', methods=['POST'])
+def compare_vehicles():
+    """
+    Get price history data for multiple vehicles for comparison.
+
+    Expects JSON POST body:
+    {
+        "vehicle_ids": [123, 456, 789],  # Array of ModelYear IDs
+        "start_date": "2023-01-01",
+        "end_date": "2024-12-01"
+    }
+
+    Returns:
+        JSON object with data for each vehicle:
+        {
+            "vehicles": [
+                {
+                    "id": 123,
+                    "brand": "Volkswagen",
+                    "model": "Gol 1.0",
+                    "year": "2024 Flex",
+                    "data": [
+                        {"date": "2023-01-01", "price": 45000.00, "label": "janeiro/2023"},
+                        ...
+                    ]
+                },
+                ...
+            ]
+        }
+    """
+    db = get_db()
+    try:
+        # Get parameters from POST request body
+        data = request.get_json()
+        vehicle_ids = data.get('vehicle_ids', [])
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+
+        # Validate required parameters
+        if not vehicle_ids or len(vehicle_ids) == 0:
+            return jsonify({"error": "vehicle_ids array is required and cannot be empty"}), 400
+
+        # Limit to 5 vehicles for performance
+        if len(vehicle_ids) > 5:
+            return jsonify({"error": "Maximum 5 vehicles can be compared at once"}), 400
+
+        # Convert date strings to datetime objects
+        if start_date:
+            start_date = datetime.fromisoformat(start_date)
+        if end_date:
+            end_date = datetime.fromisoformat(end_date)
+
+        vehicles_data = []
+
+        # Query each vehicle's data
+        for year_id in vehicle_ids:
+            # Build the query for this vehicle
+            query = (
+                db.query(
+                    ReferenceMonth.month_date,
+                    CarPrice.price,
+                    Brand.brand_name,
+                    CarModel.model_name,
+                    ModelYear.year_description
+                )
+                .join(CarPrice.reference_month)
+                .join(CarPrice.model_year)
+                .join(ModelYear.car_model)
+                .join(CarModel.brand)
+                .filter(ModelYear.id == year_id)
+            )
+
+            # Apply date filters if provided
+            if start_date:
+                query = query.filter(ReferenceMonth.month_date >= start_date)
+            if end_date:
+                query = query.filter(ReferenceMonth.month_date <= end_date)
+
+            # Order by date
+            query = query.order_by(ReferenceMonth.month_date)
+
+            # Execute query
+            results = query.all()
+
+            # If no data for this vehicle, skip it
+            if not results:
+                continue
+
+            # Extract vehicle information from first result
+            vehicle_info = {
+                "id": year_id,
+                "brand": results[0].brand_name,
+                "model": results[0].model_name,
+                "year": results[0].year_description,
+                "data": [
+                    {
+                        "date": result.month_date.isoformat(),
+                        "price": float(result.price),
+                        "label": format_month_portuguese(result.month_date)
+                    }
+                    for result in results
+                ]
+            }
+
+            vehicles_data.append(vehicle_info)
+
+        # Check if we have data for at least one vehicle
+        if not vehicles_data:
+            return jsonify({
+                "error": "No data found for any of the selected vehicles"
+            }), 404
+
+        return jsonify({"vehicles": vehicles_data})
+
+    except Exception as e:
+        # Log the error and return a user-friendly message
+        app.logger.error(f"Error in compare_vehicles: {str(e)}")
+        return jsonify({"error": "An error occurred while fetching comparison data"}), 500
+
+    finally:
+        db.close()
+
+
 @app.route('/api/price', methods=['POST'])
 def get_price():
     """

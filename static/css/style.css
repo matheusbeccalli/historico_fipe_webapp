@@ -703,7 +703,119 @@ hr {
 }
 
 /* ========================================
-   20. Utility Classes
+   20. Vehicle Comparison UI
+   ======================================== */
+.selected-vehicles-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.vehicle-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+    border: 2px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+    animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.vehicle-chip:hover {
+    border-color: var(--color-accent);
+    transform: translateX(4px);
+    box-shadow: var(--shadow-md);
+}
+
+.vehicle-chip-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.vehicle-chip-color {
+    width: 8px;
+    height: 40px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.vehicle-chip-text {
+    flex: 1;
+    min-width: 0;
+}
+
+.vehicle-chip-name {
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--color-text-primary);
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vehicle-chip-details {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vehicle-chip-remove {
+    background: none;
+    border: none;
+    color: #ef4444;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+}
+
+.vehicle-chip-remove:hover {
+    background: rgba(239, 68, 68, 0.1);
+    transform: scale(1.1);
+}
+
+.vehicle-chip-remove i {
+    font-size: 1.125rem;
+}
+
+#addVehicle {
+    position: relative;
+}
+
+#addVehicle.btn-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+#addVehicle.btn-success:hover:not(:disabled) {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+}
+
+/* ========================================
+   21. Utility Classes
    ======================================== */
 .d-none {
     display: none !important;

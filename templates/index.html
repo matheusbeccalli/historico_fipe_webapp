@@ -43,8 +43,8 @@
                 <div class="card control-card">
                     <div class="card-header">
                         <h5 class="mb-0">
-                            <i class="bi bi-funnel"></i>
-                            Selecione o Veículo
+                            <i class="bi bi-car-front-fill"></i>
+                            Comparar Veículos
                         </h5>
                     </div>
                     <div class="card-body">
@@ -78,6 +78,27 @@
                             </select>
                         </div>
 
+                        <!-- Add to Comparison Button -->
+                        <button
+                            id="addVehicle"
+                            class="btn btn-primary w-100 mb-3"
+                            disabled
+                        >
+                            <i class="bi bi-plus-circle"></i>
+                            Adicionar à Comparação
+                        </button>
+
+                        <!-- Selected Vehicles List -->
+                        <div id="vehiclesList" class="d-none mb-3">
+                            <h6 class="fw-bold mb-2 section-title">
+                                <i class="bi bi-list-ul"></i>
+                                Veículos Selecionados (<span id="vehicleCount">0</span>/5)
+                            </h6>
+                            <div id="selectedVehicles" class="selected-vehicles-container">
+                                <!-- Vehicle chips will be added here dynamically -->
+                            </div>
+                        </div>
+
                         <hr>
 
                         <!-- Date Range Selection -->
@@ -106,7 +127,7 @@
                             </select>
                         </div>
 
-                        <!-- Update Button with premium styling -->
+                        <!-- Update Chart Button -->
                         <button
                             id="updateChart"
                             class="btn btn-primary w-100"
@@ -127,8 +148,8 @@
                         </h6>
                         <p class="card-text small">
                             Dados históricos da Tabela FIPE.
-                            Selecione um veículo e período para visualizar
-                            a evolução dos preços.
+                            Adicione até 5 veículos para comparar
+                            a evolução dos preços no mesmo gráfico.
                         </p>
                     </div>
                 </div>

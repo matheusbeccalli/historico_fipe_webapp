@@ -12,6 +12,19 @@
 let availableMonths = [];
 let currentChartData = null;
 
+// Multi-vehicle comparison state
+let selectedVehicles = [];
+const MAX_VEHICLES = 5;
+
+// Color palette for different vehicles
+const VEHICLE_COLORS = [
+    '#2563eb', // Blue
+    '#10b981', // Green
+    '#f59e0b', // Amber
+    '#ef4444', // Red
+    '#8b5cf6'  // Purple
+];
+
 /**
  * Format a number as Brazilian currency (R$ 1.234,56)
  */
@@ -47,6 +60,140 @@ function showError(message) {
     document.getElementById('priceChart').style.display = 'none';
     document.getElementById('errorText').textContent = message;
     document.getElementById('errorMessage').classList.remove('d-none');
+}
+
+/**
+ * Add vehicle to comparison list
+ */
+function addVehicle() {
+    const brandSelect = document.getElementById('brandSelect');
+    const modelSelect = document.getElementById('modelSelect');
+    const yearSelect = document.getElementById('yearSelect');
+
+    const yearId = parseInt(yearSelect.value);
+    const brandName = brandSelect.options[brandSelect.selectedIndex].text;
+    const modelName = modelSelect.options[modelSelect.selectedIndex].text;
+    const yearDesc = yearSelect.options[yearSelect.selectedIndex].text;
+
+    // Check if already added
+    if (selectedVehicles.some(v => v.id === yearId)) {
+        alert('Este veículo já está na comparação');
+        return;
+    }
+
+    // Check max vehicles
+    if (selectedVehicles.length >= MAX_VEHICLES) {
+        alert(`Máximo de ${MAX_VEHICLES} veículos permitidos para comparação`);
+        return;
+    }
+
+    // Add to list
+    const vehicle = {
+        id: yearId,
+        brand: brandName,
+        model: modelName,
+        year: yearDesc,
+        color: VEHICLE_COLORS[selectedVehicles.length]
+    };
+
+    selectedVehicles.push(vehicle);
+    updateVehiclesUI();
+    updateButtonsState();
+}
+
+/**
+ * Remove vehicle from comparison list
+ */
+function removeVehicle(vehicleId) {
+    selectedVehicles = selectedVehicles.filter(v => v.id !== vehicleId);
+
+    // Reassign colors
+    selectedVehicles.forEach((vehicle, index) => {
+        vehicle.color = VEHICLE_COLORS[index];
+    });
+
+    updateVehiclesUI();
+    updateButtonsState();
+
+    // Update chart if there are still vehicles
+    if (selectedVehicles.length > 0) {
+        updateComparisonChart();
+    } else {
+        // Clear the chart
+        document.getElementById('carInfo').classList.add('d-none');
+        Plotly.purge('priceChart');
+        clearStatistics();
+    }
+}
+
+/**
+ * Update the vehicles list UI
+ */
+function updateVehiclesUI() {
+    const container = document.getElementById('selectedVehicles');
+    const countSpan = document.getElementById('vehicleCount');
+    const listDiv = document.getElementById('vehiclesList');
+
+    countSpan.textContent = selectedVehicles.length;
+
+    if (selectedVehicles.length === 0) {
+        listDiv.classList.add('d-none');
+        return;
+    }
+
+    listDiv.classList.remove('d-none');
+    container.innerHTML = '';
+
+    selectedVehicles.forEach(vehicle => {
+        const chip = document.createElement('div');
+        chip.className = 'vehicle-chip';
+        chip.innerHTML = `
+            <div class="vehicle-chip-info">
+                <div class="vehicle-chip-color" style="background-color: ${vehicle.color}"></div>
+                <div class="vehicle-chip-text">
+                    <div class="vehicle-chip-name">${vehicle.brand} ${vehicle.model}</div>
+                    <div class="vehicle-chip-details">${vehicle.year}</div>
+                </div>
+            </div>
+            <button class="vehicle-chip-remove" onclick="removeVehicle(${vehicle.id})" title="Remover">
+                <i class="bi bi-x-circle-fill"></i>
+            </button>
+        `;
+        container.appendChild(chip);
+    });
+}
+
+/**
+ * Update button states
+ */
+function updateButtonsState() {
+    const addBtn = document.getElementById('addVehicle');
+    const updateBtn = document.getElementById('updateChart');
+    const yearSelect = document.getElementById('yearSelect');
+
+    // Enable add button if year is selected and not at max
+    if (yearSelect.value && selectedVehicles.length < MAX_VEHICLES) {
+        addBtn.disabled = false;
+    } else {
+        addBtn.disabled = true;
+    }
+
+    // Enable update button if at least one vehicle is selected
+    if (selectedVehicles.length > 0) {
+        updateBtn.disabled = false;
+    } else {
+        updateBtn.disabled = true;
+    }
+}
+
+/**
+ * Clear statistics display
+ */
+function clearStatistics() {
+    document.getElementById('currentPrice').textContent = '-';
+    document.getElementById('minPrice').textContent = '-';
+    document.getElementById('maxPrice').textContent = '-';
+    document.getElementById('priceChange').textContent = '-';
 }
 
 /**
@@ -179,79 +326,109 @@ async function loadMonths(yearId = null) {
 }
 
 /**
- * Fetch and display chart data
+ * Fetch and display comparison chart data for multiple vehicles
  */
-async function updateChart() {
-    const yearId = document.getElementById('yearSelect').value;
+async function updateComparisonChart() {
     const startDate = document.getElementById('startMonth').value;
     const endDate = document.getElementById('endMonth').value;
-    
-    // Validate selections
-    if (!yearId) {
-        alert('Por favor, selecione um veículo');
-        return;
-    }
-    
+
+    // Validate date range
     if (!startDate || !endDate) {
         alert('Por favor, selecione o período');
         return;
     }
-    
-    // Validate date range
+
     if (new Date(startDate) > new Date(endDate)) {
         alert('O mês inicial deve ser anterior ao mês final');
         return;
     }
-    
+
+    // Check if we have vehicles to compare
+    if (selectedVehicles.length === 0) {
+        alert('Por favor, adicione pelo menos um veículo para comparar');
+        return;
+    }
+
     showLoading();
-    
+
     try {
-        const response = await fetch('/api/chart-data', {
+        const vehicleIds = selectedVehicles.map(v => v.id);
+
+        const response = await fetch('/api/compare-vehicles', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                year_id: parseInt(yearId),
+                vehicle_ids: vehicleIds,
                 start_date: startDate,
                 end_date: endDate
             })
         });
-        
+
         if (!response.ok) {
-            throw new Error('Erro ao buscar dados');
+            throw new Error('Erro ao buscar dados de comparação');
         }
-        
+
         const data = await response.json();
-        currentChartData = data;
-        
-        // Display car information
-        displayCarInfo(data.car_info);
-        
-        // Render the chart
-        renderChart(data.data);
-        
-        // Update statistics
-        updateStatistics(data.data);
-        
+
+        // Update vehicle info with actual data
+        data.vehicles.forEach(vehicleData => {
+            const vehicle = selectedVehicles.find(v => v.id === vehicleData.id);
+            if (vehicle) {
+                vehicle.data = vehicleData.data;
+            }
+        });
+
+        // Display comparison info
+        displayComparisonInfo();
+
+        // Render the comparison chart
+        renderComparisonChart();
+
+        // Update statistics for comparison
+        updateComparisonStatistics();
+
         hideLoading();
     } catch (error) {
-        console.error('Error updating chart:', error);
-        showError('Erro ao carregar dados do gráfico. Verifique sua seleção.');
+        console.error('Error updating comparison chart:', error);
+        showError('Erro ao carregar dados de comparação. Verifique sua seleção.');
     }
 }
 
 /**
- * Display car information banner
+ * Legacy function - redirects to comparison chart
+ */
+async function updateChart() {
+    await updateComparisonChart();
+}
+
+/**
+ * Display comparison information banner
+ */
+function displayComparisonInfo() {
+    const carInfoDiv = document.getElementById('carInfo');
+    const titleSpan = document.getElementById('carInfoTitle');
+    const detailsP = document.getElementById('carInfoDetails');
+
+    const count = selectedVehicles.length;
+    titleSpan.textContent = `Comparando ${count} ${count === 1 ? 'veículo' : 'veículos'}`;
+    detailsP.textContent = selectedVehicles.map(v => `${v.brand} ${v.model} (${v.year})`).join(' • ');
+
+    carInfoDiv.classList.remove('d-none');
+}
+
+/**
+ * Display car information banner (legacy - for single vehicle)
  */
 function displayCarInfo(carInfo) {
     const carInfoDiv = document.getElementById('carInfo');
     const titleSpan = document.getElementById('carInfoTitle');
     const detailsP = document.getElementById('carInfoDetails');
-    
+
     titleSpan.textContent = `${carInfo.brand} ${carInfo.model}`;
     detailsP.textContent = `Ano/Combustível: ${carInfo.year}`;
-    
+
     carInfoDiv.classList.remove('d-none');
 }
 
@@ -408,6 +585,217 @@ function renderChart(data) {
 }
 
 /**
+ * Render comparison chart with multiple vehicle traces
+ */
+function renderComparisonChart() {
+    // Create traces for each vehicle
+    const traces = selectedVehicles.map((vehicle, index) => {
+        if (!vehicle.data || vehicle.data.length === 0) return null;
+
+        const dates = vehicle.data.map(d => d.label);
+        const prices = vehicle.data.map(d => d.price);
+
+        return {
+            x: dates,
+            y: prices,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: `${vehicle.brand} ${vehicle.model}`,
+            line: {
+                color: vehicle.color,
+                width: 3,
+                shape: 'spline',
+                smoothing: 0.8
+            },
+            marker: {
+                size: 8,
+                color: vehicle.color,
+                line: {
+                    color: '#fff',
+                    width: 2
+                }
+            },
+            hovertemplate: '<b>%{fullData.name}</b><br>' +
+                          '%{x}<br>' +
+                          'Preço: R$ %{y:,.2f}<br>' +
+                          '<extra></extra>'
+        };
+    }).filter(trace => trace !== null);
+
+    // Premium layout configuration
+    const layout = {
+        title: {
+            text: 'Comparação de Preços FIPE',
+            font: {
+                size: 24,
+                family: 'Inter, -apple-system, sans-serif',
+                weight: 700,
+                color: '#111827'
+            },
+            pad: {
+                t: 10,
+                b: 10
+            }
+        },
+        xaxis: {
+            title: {
+                text: 'Período',
+                font: {
+                    size: 14,
+                    family: 'Inter, -apple-system, sans-serif',
+                    weight: 600,
+                    color: '#1e3a8a'
+                }
+            },
+            tickangle: -45,
+            automargin: true,
+            tickfont: {
+                size: 12,
+                family: 'Inter, -apple-system, sans-serif',
+                color: '#1e3a8a'
+            },
+            gridcolor: '#dbeafe',
+            gridwidth: 1,
+            showline: true,
+            linecolor: '#93c5fd',
+            linewidth: 2
+        },
+        yaxis: {
+            title: {
+                text: 'Preço (R$)',
+                font: {
+                    size: 14,
+                    family: 'Inter, -apple-system, sans-serif',
+                    weight: 600,
+                    color: '#1e3a8a'
+                }
+            },
+            tickformat: ',.0f',
+            automargin: true,
+            tickfont: {
+                size: 12,
+                family: 'Inter, -apple-system, sans-serif',
+                color: '#1e3a8a'
+            },
+            gridcolor: '#dbeafe',
+            gridwidth: 1,
+            showline: true,
+            linecolor: '#93c5fd',
+            linewidth: 2,
+            zeroline: false
+        },
+        hovermode: 'x unified',
+        plot_bgcolor: '#eff6ff',
+        paper_bgcolor: 'white',
+        margin: {
+            l: 80,
+            r: 40,
+            t: 100,
+            b: 120
+        },
+        hoverlabel: {
+            bgcolor: '#111827',
+            font: {
+                size: 14,
+                family: 'Inter, -apple-system, sans-serif',
+                color: 'white'
+            }
+        },
+        legend: {
+            orientation: 'h',
+            yanchor: 'bottom',
+            y: -0.3,
+            xanchor: 'center',
+            x: 0.5,
+            font: {
+                size: 12,
+                family: 'Inter, -apple-system, sans-serif'
+            }
+        }
+    };
+
+    // Configuration options
+    const config = {
+        responsive: true,
+        displayModeBar: true,
+        displaylogo: false,
+        modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+        toImageButtonOptions: {
+            format: 'png',
+            filename: 'fipe_comparison_chart',
+            height: 600,
+            width: 1200,
+            scale: 2
+        }
+    };
+
+    // Render the chart
+    Plotly.newPlot('priceChart', traces, layout, config);
+}
+
+/**
+ * Update statistics for comparison view
+ */
+function updateComparisonStatistics() {
+    if (selectedVehicles.length === 0) return;
+
+    // Collect all prices from all vehicles
+    let allPrices = [];
+    let latestPrices = [];
+    let firstPrices = [];
+
+    selectedVehicles.forEach(vehicle => {
+        if (vehicle.data && vehicle.data.length > 0) {
+            const prices = vehicle.data.map(d => d.price);
+            allPrices = allPrices.concat(prices);
+            latestPrices.push(prices[prices.length - 1]);
+            firstPrices.push(prices[0]);
+        }
+    });
+
+    if (allPrices.length === 0) return;
+
+    // Calculate statistics
+    const avgCurrentPrice = latestPrices.reduce((a, b) => a + b, 0) / latestPrices.length;
+    const avgFirstPrice = firstPrices.reduce((a, b) => a + b, 0) / firstPrices.length;
+    const minPrice = Math.min(...allPrices);
+    const maxPrice = Math.max(...allPrices);
+    const avgChange = ((avgCurrentPrice - avgFirstPrice) / avgFirstPrice) * 100;
+
+    // Animate the statistics
+    const currentPriceEl = document.getElementById('currentPrice');
+    const minPriceEl = document.getElementById('minPrice');
+    const maxPriceEl = document.getElementById('maxPrice');
+    const priceChangeEl = document.getElementById('priceChange');
+
+    // Add stagger animation to stat cards
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach((card, index) => {
+        card.style.animation = 'none';
+        setTimeout(() => {
+            card.style.animation = `slideInUp 0.5s ease-out ${index * 0.1}s both`;
+        }, 10);
+    });
+
+    // Animate numbers
+    setTimeout(() => {
+        animateValue(currentPriceEl, 0, avgCurrentPrice, 1000);
+        animateValue(minPriceEl, 0, minPrice, 1000);
+        animateValue(maxPriceEl, 0, maxPrice, 1000);
+        animateValue(priceChangeEl, 0, avgChange, 1000);
+    }, 200);
+
+    // Add color based on change direction
+    if (avgChange > 0) {
+        priceChangeEl.className = 'mb-0 text-success';
+    } else if (avgChange < 0) {
+        priceChangeEl.className = 'mb-0 text-danger';
+    } else {
+        priceChangeEl.className = 'mb-0 text-secondary';
+    }
+}
+
+/**
  * Animate number counter for statistics
  */
 function animateValue(element, start, end, duration) {
@@ -481,42 +869,25 @@ function updateStatistics(data) {
 }
 
 /**
- * Load default car and display it
+ * Initialize app with default selections
  */
-async function loadDefaultCar() {
+async function initializeApp() {
     try {
-        showLoading();
-
-        // Get default car selections
-        const response = await fetch('/api/default-car');
-        const defaultCar = await response.json();
-
-        // Load all the dropdowns
+        // Load all brands
         await loadBrands();
 
-        // Set the brand
-        document.getElementById('brandSelect').value = defaultCar.brand_id;
+        // Load all months
+        await loadMonths();
 
-        // Load and set the model
-        await loadModels(defaultCar.brand_id);
-        document.getElementById('modelSelect').value = defaultCar.model_id;
+        // Hide loading spinner
+        hideLoading();
 
-        // Load and set the year
-        await loadYears(defaultCar.model_id);
-        document.getElementById('yearSelect').value = defaultCar.year_id;
-
-        // Load months for this specific vehicle
-        await loadMonths(defaultCar.year_id);
-
-        // Enable the update button
-        document.getElementById('updateChart').disabled = false;
-
-        // Load the chart
-        await updateChart();
+        // Clear the chart initially
+        document.getElementById('carInfo').classList.add('d-none');
 
     } catch (error) {
-        console.error('Error loading default car:', error);
-        showError('Erro ao carregar veículo padrão');
+        console.error('Error initializing app:', error);
+        showError('Erro ao inicializar aplicação');
     }
 }
 
@@ -550,23 +921,23 @@ function initEventListeners() {
         }
     });
     
-    // Year selection change - reload months for this vehicle and enable update button
+    // Year selection change - enable add button
     document.getElementById('yearSelect').addEventListener('change', async (e) => {
         const yearId = e.target.value;
-        const updateBtn = document.getElementById('updateChart');
 
         if (yearId) {
             // Load months available for this specific vehicle
             await loadMonths(parseInt(yearId));
-            updateBtn.disabled = false;
+            updateButtonsState();
         } else {
-            // No year selected - disable month selects and update button
-            document.getElementById('startMonth').disabled = true;
-            document.getElementById('endMonth').disabled = true;
-            updateBtn.disabled = true;
+            // No year selected - disable add button
+            updateButtonsState();
         }
     });
-    
+
+    // Add vehicle button click
+    document.getElementById('addVehicle').addEventListener('click', addVehicle);
+
     // Update button click
     document.getElementById('updateChart').addEventListener('click', updateChart);
     
@@ -584,11 +955,11 @@ function initEventListeners() {
  * Initialize the application when DOM is loaded
  */
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('FIPE Price Tracker initialized');
-    
+    console.log('FIPE Price Tracker - Multi-vehicle comparison initialized');
+
     // Set up event listeners
     initEventListeners();
-    
-    // Load default car and chart
-    loadDefaultCar();
+
+    // Initialize the app
+    initializeApp();
 });
