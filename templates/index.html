@@ -4,37 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FIPE - Histórico de Preços de Veículos</title>
-    
+
+    <!-- Preconnect for performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Inter font for premium typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
+
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
-    
+
     <!-- Plotly.js for charts -->
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
-    
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <!-- Navigation Bar -->
-    <nav class="navbar navbar-dark bg-primary">
+    <!-- Premium Navigation Bar with glassmorphism -->
+    <nav class="navbar navbar-light">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">
                 <i class="bi bi-graph-up-arrow"></i>
-                FIPE - Histórico de Preços
+                FIPE Histórico
             </span>
         </div>
     </nav>
 
     <!-- Main Container -->
-    <div class="container-fluid mt-4">
+    <div class="container-fluid">
         <div class="row">
-            <!-- Left Panel - Controls -->
+            <!-- Left Panel - Controls with premium styling -->
             <div class="col-lg-3 col-md-4 mb-4">
-                <div class="card shadow-sm">
-                    <div class="card-header bg-primary text-white">
+                <div class="card control-card">
+                    <div class="card-header">
                         <h5 class="mb-0">
                             <i class="bi bi-funnel"></i>
                             Selecione o Veículo
@@ -42,8 +49,8 @@
                     </div>
                     <div class="card-body">
                         <!-- Brand Dropdown -->
-                        <div class="mb-3">
-                            <label for="brandSelect" class="form-label fw-bold">
+                        <div class="mb-3 form-group-animated">
+                            <label for="brandSelect" class="form-label">
                                 Marca
                             </label>
                             <select class="form-select" id="brandSelect">
@@ -52,8 +59,8 @@
                         </div>
 
                         <!-- Model Dropdown -->
-                        <div class="mb-3">
-                            <label for="modelSelect" class="form-label fw-bold">
+                        <div class="mb-3 form-group-animated">
+                            <label for="modelSelect" class="form-label">
                                 Modelo
                             </label>
                             <select class="form-select" id="modelSelect" disabled>
@@ -62,8 +69,8 @@
                         </div>
 
                         <!-- Year Dropdown -->
-                        <div class="mb-3">
-                            <label for="yearSelect" class="form-label fw-bold">
+                        <div class="mb-3 form-group-animated">
+                            <label for="yearSelect" class="form-label">
                                 Ano/Combustível
                             </label>
                             <select class="form-select" id="yearSelect" disabled>
@@ -74,13 +81,13 @@
                         <hr>
 
                         <!-- Date Range Selection -->
-                        <h6 class="fw-bold mb-3">
+                        <h6 class="fw-bold mb-3 section-title">
                             <i class="bi bi-calendar-range"></i>
                             Período
                         </h6>
 
                         <!-- Start Month -->
-                        <div class="mb-3">
+                        <div class="mb-3 form-group-animated">
                             <label for="startMonth" class="form-label">
                                 Mês Inicial
                             </label>
@@ -90,7 +97,7 @@
                         </div>
 
                         <!-- End Month -->
-                        <div class="mb-3">
+                        <div class="mb-3 form-group-animated">
                             <label for="endMonth" class="form-label">
                                 Mês Final
                             </label>
@@ -99,9 +106,9 @@
                             </select>
                         </div>
 
-                        <!-- Update Button -->
-                        <button 
-                            id="updateChart" 
+                        <!-- Update Button with premium styling -->
+                        <button
+                            id="updateChart"
                             class="btn btn-primary w-100"
                             disabled
                         >
@@ -111,14 +118,14 @@
                     </div>
                 </div>
 
-                <!-- Info Card -->
-                <div class="card shadow-sm mt-3">
+                <!-- Info Card with modern design -->
+                <div class="card shadow-sm mt-3 info-card">
                     <div class="card-body">
                         <h6 class="card-title">
                             <i class="bi bi-info-circle"></i>
                             Sobre
                         </h6>
-                        <p class="card-text small text-muted">
+                        <p class="card-text small">
                             Dados históricos da Tabela FIPE.
                             Selecione um veículo e período para visualizar
                             a evolução dos preços.
@@ -127,10 +134,10 @@
                 </div>
             </div>
 
-            <!-- Right Panel - Chart -->
+            <!-- Right Panel - Chart with premium design -->
             <div class="col-lg-9 col-md-8">
-                <!-- Car Info Display -->
-                <div id="carInfo" class="alert alert-info d-none" role="alert">
+                <!-- Car Info Display with smooth animation -->
+                <div id="carInfo" class="alert d-none" role="alert">
                     <h5 class="alert-heading mb-2">
                         <i class="bi bi-car-front"></i>
                         <span id="carInfoTitle">Carregando...</span>
@@ -138,58 +145,58 @@
                     <p class="mb-0 small" id="carInfoDetails"></p>
                 </div>
 
-                <!-- Chart Container -->
-                <div class="card shadow-sm">
+                <!-- Chart Container with premium card -->
+                <div class="card chart-card">
                     <div class="card-body">
-                        <!-- Loading Spinner -->
+                        <!-- Loading Spinner with modern design -->
                         <div id="loadingSpinner" class="text-center py-5">
-                            <div class="spinner-border text-primary" role="status">
+                            <div class="spinner-border" role="status">
                                 <span class="visually-hidden">Carregando...</span>
                             </div>
-                            <p class="mt-3 text-muted">Carregando dados...</p>
+                            <p class="mt-3">Carregando dados...</p>
                         </div>
 
                         <!-- Error Message -->
-                        <div id="errorMessage" class="alert alert-danger d-none" role="alert">
+                        <div id="errorMessage" class="alert d-none" role="alert">
                             <i class="bi bi-exclamation-triangle"></i>
                             <span id="errorText">Erro ao carregar dados.</span>
                         </div>
 
                         <!-- Chart will be rendered here -->
-                        <div id="priceChart" style="width: 100%; height: 500px;"></div>
+                        <div id="priceChart"></div>
                     </div>
                 </div>
 
-                <!-- Statistics Cards -->
-                <div class="row mt-3">
+                <!-- Statistics Cards with premium hover effects -->
+                <div class="row mt-3 stats-container">
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card shadow-sm text-center">
+                        <div class="card stat-card">
                             <div class="card-body">
-                                <h6 class="text-muted small mb-1">Preço Atual</h6>
-                                <h4 class="mb-0 text-primary" id="currentPrice">-</h4>
+                                <h6 class="mb-1">Preço Atual</h6>
+                                <h4 class="mb-0" id="currentPrice">-</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card shadow-sm text-center">
+                        <div class="card stat-card">
                             <div class="card-body">
-                                <h6 class="text-muted small mb-1">Preço Mínimo</h6>
-                                <h4 class="mb-0 text-success" id="minPrice">-</h4>
+                                <h6 class="mb-1">Preço Mínimo</h6>
+                                <h4 class="mb-0" id="minPrice">-</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card shadow-sm text-center">
+                        <div class="card stat-card">
                             <div class="card-body">
-                                <h6 class="text-muted small mb-1">Preço Máximo</h6>
-                                <h4 class="mb-0 text-danger" id="maxPrice">-</h4>
+                                <h6 class="mb-1">Preço Máximo</h6>
+                                <h4 class="mb-0" id="maxPrice">-</h4>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-3 col-sm-6 mb-3">
-                        <div class="card shadow-sm text-center">
+                        <div class="card stat-card">
                             <div class="card-body">
-                                <h6 class="text-muted small mb-1">Variação</h6>
+                                <h6 class="mb-1">Variação</h6>
                                 <h4 class="mb-0" id="priceChange">-</h4>
                             </div>
                         </div>
@@ -199,20 +206,21 @@
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="mt-5 py-3 bg-light">
-        <div class="container text-center text-muted small">
+    <!-- Premium Footer -->
+    <footer>
+        <div class="container text-center">
             <p class="mb-0">
-                Dados da Tabela FIPE | 
-                <i class="bi bi-github"></i> 
-                Desenvolvido com Flask e Bootstrap 5
+                Dados da Tabela FIPE
+                <i class="bi bi-dot"></i>
+                <i class="bi bi-code-slash"></i>
+                Desenvolvido com Flask
             </p>
         </div>
     </footer>
 
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     <!-- Custom JavaScript -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>

@@ -256,14 +256,14 @@ function displayCarInfo(carInfo) {
 }
 
 /**
- * Render the Plotly chart
+ * Render the Plotly chart with premium styling
  */
 function renderChart(data) {
     // Prepare data for Plotly
     const dates = data.map(d => d.label);
     const prices = data.map(d => d.price);
-    
-    // Create the trace (line)
+
+    // Create gradient for the area under the line
     const trace = {
         x: dates,
         y: prices,
@@ -271,48 +271,108 @@ function renderChart(data) {
         mode: 'lines+markers',
         name: 'Preço',
         line: {
-            color: '#0d6efd',
-            width: 3
+            color: '#d97706',
+            width: 3,
+            shape: 'spline',
+            smoothing: 0.8
         },
         marker: {
-            size: 6,
-            color: '#0d6efd'
+            size: 8,
+            color: '#d97706',
+            line: {
+                color: '#fff',
+                width: 2
+            }
         },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(217, 119, 6, 0.08)',
         hovertemplate: '<b>%{x}</b><br>' +
                       'Preço: R$ %{y:,.2f}<br>' +
                       '<extra></extra>'
     };
-    
-    // Layout configuration
+
+    // Premium layout configuration
     const layout = {
         title: {
             text: 'Evolução do Preço FIPE',
             font: {
-                size: 20,
-                family: 'Arial, sans-serif'
+                size: 24,
+                family: 'Inter, -apple-system, sans-serif',
+                weight: 700,
+                color: '#111827'
+            },
+            pad: {
+                t: 10,
+                b: 10
             }
         },
         xaxis: {
-            title: 'Período',
+            title: {
+                text: 'Período',
+                font: {
+                    size: 14,
+                    family: 'Inter, -apple-system, sans-serif',
+                    weight: 600,
+                    color: '#92400e'
+                }
+            },
             tickangle: -45,
-            automargin: true
+            automargin: true,
+            tickfont: {
+                size: 12,
+                family: 'Inter, -apple-system, sans-serif',
+                color: '#78350f'
+            },
+            gridcolor: '#fef3c7',
+            gridwidth: 1,
+            showline: true,
+            linecolor: '#fed7aa',
+            linewidth: 2
         },
         yaxis: {
-            title: 'Preço (R$)',
+            title: {
+                text: 'Preço (R$)',
+                font: {
+                    size: 14,
+                    family: 'Inter, -apple-system, sans-serif',
+                    weight: 600,
+                    color: '#92400e'
+                }
+            },
             tickformat: ',.0f',
-            automargin: true
+            automargin: true,
+            tickfont: {
+                size: 12,
+                family: 'Inter, -apple-system, sans-serif',
+                color: '#78350f'
+            },
+            gridcolor: '#fef3c7',
+            gridwidth: 1,
+            showline: true,
+            linecolor: '#fed7aa',
+            linewidth: 2,
+            zeroline: false
         },
-        hovermode: 'closest',
-        plot_bgcolor: '#f8f9fa',
+        hovermode: 'x unified',
+        plot_bgcolor: '#fffbf5',
         paper_bgcolor: 'white',
         margin: {
             l: 80,
             r: 40,
-            t: 80,
-            b: 100
+            t: 100,
+            b: 120
+        },
+        hoverlabel: {
+            bgcolor: '#111827',
+            bordercolor: '#d97706',
+            font: {
+                size: 14,
+                family: 'Inter, -apple-system, sans-serif',
+                color: 'white'
+            }
         }
     };
-    
+
     // Configuration options
     const config = {
         responsive: true,
@@ -327,44 +387,96 @@ function renderChart(data) {
             scale: 2
         }
     };
-    
-    // Render the chart
-    Plotly.newPlot('priceChart', [trace], layout, config);
+
+    // Render the chart with animation
+    Plotly.newPlot('priceChart', [trace], layout, config).then(() => {
+        // Animate the chart on render
+        Plotly.animate('priceChart', {
+            data: [trace],
+            traces: [0],
+            layout: {}
+        }, {
+            transition: {
+                duration: 800,
+                easing: 'cubic-in-out'
+            },
+            frame: {
+                duration: 800
+            }
+        });
+    });
 }
 
 /**
- * Calculate and display statistics
+ * Animate number counter for statistics
+ */
+function animateValue(element, start, end, duration) {
+    const range = end - start;
+    const increment = range / (duration / 16); // 60fps
+    let current = start;
+
+    const timer = setInterval(() => {
+        current += increment;
+        if ((increment > 0 && current >= end) || (increment < 0 && current <= end)) {
+            current = end;
+            clearInterval(timer);
+        }
+
+        if (element.id === 'priceChange') {
+            const percent = current.toFixed(2);
+            element.textContent = `${percent > 0 ? '+' : ''}${percent}%`;
+        } else {
+            element.textContent = formatBRL(current);
+        }
+    }, 16);
+}
+
+/**
+ * Calculate and display statistics with smooth animations
  */
 function updateStatistics(data) {
     if (!data || data.length === 0) return;
-    
+
     const prices = data.map(d => d.price);
     const currentPrice = prices[prices.length - 1];
     const firstPrice = prices[0];
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
-    
+
     // Calculate price change (percentage and absolute)
     const priceChange = currentPrice - firstPrice;
-    const priceChangePercent = ((priceChange / firstPrice) * 100).toFixed(2);
-    
-    // Update the DOM
-    document.getElementById('currentPrice').textContent = formatBRL(currentPrice);
-    document.getElementById('minPrice').textContent = formatBRL(minPrice);
-    document.getElementById('maxPrice').textContent = formatBRL(maxPrice);
-    
-    // Format price change with color
-    const priceChangeElement = document.getElementById('priceChange');
-    const changeText = `${priceChangePercent > 0 ? '+' : ''}${priceChangePercent}%`;
-    priceChangeElement.textContent = changeText;
-    
+    const priceChangePercent = ((priceChange / firstPrice) * 100);
+
+    // Animate the statistics
+    const currentPriceEl = document.getElementById('currentPrice');
+    const minPriceEl = document.getElementById('minPrice');
+    const maxPriceEl = document.getElementById('maxPrice');
+    const priceChangeEl = document.getElementById('priceChange');
+
+    // Add stagger animation to stat cards
+    const statCards = document.querySelectorAll('.stat-card');
+    statCards.forEach((card, index) => {
+        card.style.animation = 'none';
+        setTimeout(() => {
+            card.style.animation = `slideInUp 0.5s ease-out ${index * 0.1}s both`;
+        }, 10);
+    });
+
+    // Animate numbers
+    setTimeout(() => {
+        animateValue(currentPriceEl, 0, currentPrice, 1000);
+        animateValue(minPriceEl, 0, minPrice, 1000);
+        animateValue(maxPriceEl, 0, maxPrice, 1000);
+        animateValue(priceChangeEl, 0, priceChangePercent, 1000);
+    }, 200);
+
     // Add color based on change direction
     if (priceChange > 0) {
-        priceChangeElement.className = 'mb-0 text-success';
+        priceChangeEl.className = 'mb-0 text-success';
     } else if (priceChange < 0) {
-        priceChangeElement.className = 'mb-0 text-danger';
+        priceChangeEl.className = 'mb-0 text-danger';
     } else {
-        priceChangeElement.className = 'mb-0 text-secondary';
+        priceChangeEl.className = 'mb-0 text-secondary';
     }
 }
 

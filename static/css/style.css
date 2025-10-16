@@ -1,213 +1,738 @@
 /**
- * FIPE Price Tracker - Custom Styles
- * 
- * Additional styling on top of Bootstrap 5
+ * FIPE Price Tracker - Premium Design
+ * Awwwards-quality styling with warm professional aesthetic
  */
 
-/* Body styling */
-body {
-    background-color: #f5f7fa;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+/* ========================================
+   1. CSS Variables & Design System
+   ======================================== */
+:root {
+    /* Warm Professional Color Palette */
+    --color-bg-primary: #ffffff;
+    --color-bg-secondary: #fffbf5;
+    --color-bg-tertiary: #fef8f0;
+    --color-accent: #d97706;
+    --color-accent-light: #fbbf24;
+    --color-accent-dark: #b45309;
+    --color-text-primary: #111827;
+    --color-text-secondary: #78350f;
+    --color-text-muted: #92400e;
+    --color-border: #fed7aa;
+    --color-border-light: #fef3c7;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px 0 rgba(217, 119, 6, 0.05), 0 1px 2px -1px rgba(217, 119, 6, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(217, 119, 6, 0.08), 0 2px 4px -2px rgba(217, 119, 6, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(217, 119, 6, 0.12), 0 4px 6px -4px rgba(217, 119, 6, 0.12);
+    --shadow-xl: 0 20px 25px -5px rgba(217, 119, 6, 0.15), 0 8px 10px -6px rgba(217, 119, 6, 0.15);
+
+    /* Typography */
+    --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-display: 'Cabinet Grotesk', 'Inter', -apple-system, sans-serif;
+
+    /* Spacing */
+    --spacing-unit: 0.25rem;
+
+    /* Border radius */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
+    /* Transitions */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Navbar customization */
+/* ========================================
+   2. Base Styles & Typography
+   ======================================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-primary);
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 50%, var(--color-bg-tertiary) 100%);
+    background-attachment: fixed;
+    color: var(--color-text-primary);
+    line-height: 1.6;
+    font-size: 16px;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+}
+
+h1 { font-size: 3.5rem; }
+h2 { font-size: 2.5rem; }
+h3 { font-size: 2rem; }
+h4 { font-size: 1.5rem; }
+h5 { font-size: 1.25rem; }
+h6 { font-size: 1rem; }
+
+/* ========================================
+   3. Navigation Bar - Premium Header
+   ======================================== */
 .navbar {
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: none !important;
+    box-shadow: 0 1px 0 rgba(217, 119, 6, 0.08), var(--shadow-md);
+    padding: 1.5rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    transition: all var(--transition-base);
 }
 
 .navbar-brand {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-family: var(--font-display);
+    font-size: 1.75rem !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform var(--transition-base);
 }
 
-/* Card styling */
+.navbar-brand:hover {
+    transform: translateY(-2px);
+}
+
+.navbar-brand i {
+    font-size: 2rem;
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
+
+/* ========================================
+   4. Layout & Container
+   ======================================== */
+.container-fluid {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+}
+
+/* ========================================
+   5. Card Components - Premium Design
+   ======================================== */
 .card {
-    border: none;
-    border-radius: 8px;
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base);
+    overflow: hidden;
+    position: relative;
+}
+
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+    opacity: 0;
+    transition: opacity var(--transition-base);
+}
+
+.card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--color-border);
+}
+
+.card:hover::before {
+    opacity: 1;
 }
 
 .card-header {
-    border-radius: 8px 8px 0 0 !important;
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    color: white !important;
+    padding: 1.5rem 2rem !important;
+    border: none !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
 }
 
-/* Form controls */
+.card-header h5 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: white;
+}
+
+.card-header i {
+    font-size: 1.5rem;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+/* ========================================
+   6. Form Controls - Modern Input Design
+   ======================================== */
+.form-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
 .form-select {
-    border-radius: 6px;
-    border: 1px solid #ced4da;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    appearance: none;
+    background: var(--color-bg-secondary);
+    border: 2px solid var(--color-border-light);
+    border-radius: var(--radius-md);
+    padding: 0.875rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    transition: all var(--transition-base);
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23d97706' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 16px;
+    padding-right: 3rem;
+}
+
+.form-select:hover:not(:disabled) {
+    border-color: var(--color-border);
+    background-color: var(--color-bg-primary);
 }
 
 .form-select:focus {
-    border-color: #0d6efd;
-    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+    outline: none;
+    border-color: var(--color-accent);
+    background-color: var(--color-bg-primary);
+    box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.1);
+    transform: translateY(-1px);
 }
 
 .form-select:disabled {
-    background-color: #f8f9fa;
+    background-color: #fafaf9;
+    border-color: #e7e5e4;
+    color: #a8a29e;
     cursor: not-allowed;
+    opacity: 0.6;
 }
 
-/* Button styling */
+/* ========================================
+   7. Button Design - Premium CTA
+   ======================================== */
 .btn {
-    border-radius: 6px;
-    font-weight: 500;
-    transition: all 0.2s ease;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+    padding: 1rem 2rem;
+    border-radius: var(--radius-md);
+    border: none;
+    transition: all var(--transition-base);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    position: relative;
+    overflow: hidden;
 }
 
 .btn-primary {
-    box-shadow: 0 2px 4px rgba(13, 110, 253, 0.2);
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    color: white;
+    box-shadow: var(--shadow-md), 0 0 20px rgba(217, 119, 6, 0.2);
 }
 
-.btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(13, 110, 253, 0.3);
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left var(--transition-slow);
 }
 
-.btn-primary:active {
-    transform: translateY(0);
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: var(--shadow-lg), 0 0 30px rgba(217, 119, 6, 0.4);
+    background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-accent) 100%);
 }
 
-/* Chart container */
+.btn-primary:hover::before {
+    left: 100%;
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0) scale(0.98);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn i {
+    font-size: 1.25rem;
+    transition: transform var(--transition-base);
+}
+
+.btn:hover i {
+    transform: rotate(90deg);
+}
+
+/* ========================================
+   8. Chart Container
+   ======================================== */
 #priceChart {
+    width: 100%;
     min-height: 500px;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-primary);
 }
 
-/* Loading spinner customization */
+/* ========================================
+   9. Loading States
+   ======================================== */
 #loadingSpinner {
     min-height: 500px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 1.5rem;
 }
 
 .spinner-border {
-    width: 3rem;
-    height: 3rem;
+    width: 4rem;
+    height: 4rem;
+    border: 4px solid var(--color-border-light);
+    border-top-color: var(--color-accent);
+    animation: spin 0.8s linear infinite;
 }
 
-/* Statistics cards */
-.card h4 {
-    font-weight: 700;
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
-.card h6 {
+#loadingSpinner p {
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    font-size: 1.125rem;
 }
 
-/* Car info alert */
+/* ========================================
+   10. Statistics Cards - Data Display
+   ======================================== */
+.row.mt-3 .card {
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
+    border: 2px solid var(--color-border-light);
+    transition: all var(--transition-spring);
+    cursor: default;
+}
+
+.row.mt-3 .card:hover {
+    transform: translateY(-8px) scale(1.02);
+    border-color: var(--color-accent);
+}
+
+.row.mt-3 .card-body {
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.row.mt-3 .card h6 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    margin-bottom: 1rem;
+}
+
+.row.mt-3 .card h4 {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin: 0;
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Color variations for stats */
+#currentPrice {
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#minPrice {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#maxPrice {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+#priceChange.text-success {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+#priceChange.text-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+#priceChange.text-secondary {
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+}
+
+/* ========================================
+   11. Alert & Info Components
+   ======================================== */
 #carInfo {
-    border-left: 4px solid #0d6efd;
-    background-color: #e7f1ff;
-    border-color: #b6d4fe;
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(251, 191, 36, 0.08) 100%);
+    border: 2px solid var(--color-border);
+    border-left: 6px solid var(--color-accent);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+    animation: slideInDown var(--transition-slow);
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 #carInfo .alert-heading {
-    color: #084298;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
-/* Error message */
+#carInfo .alert-heading i {
+    font-size: 2rem;
+    color: var(--color-accent);
+}
+
+#carInfoDetails {
+    color: var(--color-text-muted);
+    font-weight: 500;
+}
+
 #errorMessage {
-    border-left: 4px solid #dc3545;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(220, 38, 38, 0.08) 100%);
+    border: 2px solid #fecaca;
+    border-left: 6px solid #dc2626;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 2rem;
+    color: #991b1b;
+    font-weight: 600;
 }
 
-/* Footer */
+/* ========================================
+   12. Info Card Styling
+   ======================================== */
+.card.mt-3 {
+    background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-tertiary) 100%);
+}
+
+.card.mt-3 .card-title {
+    font-weight: 700;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.card.mt-3 .card-title i {
+    color: var(--color-accent);
+    font-size: 1.25rem;
+}
+
+.card.mt-3 .card-text {
+    color: var(--color-text-muted);
+    line-height: 1.7;
+}
+
+/* ========================================
+   13. Footer
+   ======================================== */
 footer {
-    margin-top: auto;
-    border-top: 1px solid #dee2e6;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid var(--color-border-light);
+    padding: 2rem 0;
+    margin-top: 4rem;
 }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .navbar-brand {
-        font-size: 1.2rem;
+footer p {
+    color: var(--color-text-muted);
+    font-weight: 500;
+    margin: 0;
+}
+
+footer i {
+    color: var(--color-accent);
+    margin: 0 0.25rem;
+}
+
+/* ========================================
+   14. Divider
+   ======================================== */
+hr {
+    border: none;
+    height: 2px;
+    background: linear-gradient(90deg, transparent 0%, var(--color-border) 50%, transparent 100%);
+    margin: 2rem 0;
+    opacity: 0.5;
+}
+
+/* ========================================
+   15. Scrollbar Styling
+   ======================================== */
+::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
+    border-radius: 6px;
+    border: 2px solid var(--color-bg-secondary);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-accent) 100%);
+}
+
+/* ========================================
+   16. Selection Styling
+   ======================================== */
+::selection {
+    background: var(--color-accent);
+    color: white;
+}
+
+::-moz-selection {
+    background: var(--color-accent);
+    color: white;
+}
+
+/* ========================================
+   17. Responsive Design
+   ======================================== */
+@media (max-width: 992px) {
+    .container-fluid {
+        padding: 2rem 1.5rem;
     }
-    
+
+    h1 { font-size: 2.5rem; }
+    h2 { font-size: 2rem; }
+    h3 { font-size: 1.75rem; }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
     #priceChart {
         min-height: 400px;
     }
-    
-    .card-body {
-        padding: 1rem;
+
+    .row.mt-3 .card h4 {
+        font-size: 1.5rem;
     }
 }
 
-/* Smooth transitions */
-.card,
-.btn,
-.form-select,
-.alert {
-    transition: all 0.2s ease;
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.25rem !important;
+    }
+
+    h1 { font-size: 2rem; }
+
+    .container-fluid {
+        padding: 1.5rem 1rem;
+    }
+
+    .card-header {
+        padding: 1rem 1.5rem !important;
+    }
+
+    .card-body {
+        padding: 1.25rem;
+    }
+
+    .btn {
+        padding: 0.875rem 1.5rem;
+    }
+
+    .form-select {
+        padding: 0.75rem 1rem;
+        padding-right: 2.5rem;
+    }
+
+    #priceChart {
+        min-height: 350px;
+    }
 }
 
-/* Shadow effects */
-.shadow-sm {
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+/* ========================================
+   18. Accessibility Improvements
+   ======================================== */
+.btn:focus,
+.form-select:focus {
+    outline: 3px solid var(--color-accent);
+    outline-offset: 2px;
 }
 
-/* Custom scrollbar for dropdowns (webkit browsers) */
-select::-webkit-scrollbar {
-    width: 8px;
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }
 
-select::-webkit-scrollbar-track {
-    background: #f1f1f1;
+/* ========================================
+   19. Plotly Chart Customization
+   ======================================== */
+.js-plotly-plot .plotly {
+    border-radius: var(--radius-md);
 }
 
-select::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-}
-
-select::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-/* Label styling */
-.form-label {
-    margin-bottom: 0.5rem;
-    color: #495057;
-    font-size: 0.95rem;
-}
-
-.fw-bold {
-    font-weight: 600 !important;
-}
-
-/* Icons in buttons */
-.btn i {
-    margin-right: 0.25rem;
-}
-
-/* Statistics card hover effect */
-.card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
-}
-
-/* Plotly chart customization */
 .js-plotly-plot .plotly .modebar {
-    padding: 10px;
+    padding: 0.75rem;
 }
 
 .js-plotly-plot .plotly .modebar-btn {
-    padding: 5px;
+    transition: all var(--transition-fast);
 }
 
-/* Info card styling */
-.card-text.small {
-    line-height: 1.6;
+.js-plotly-plot .plotly .modebar-btn:hover {
+    background: var(--color-bg-secondary) !important;
 }
 
-/* Ensure proper spacing */
-hr {
-    margin: 1.5rem 0;
-    opacity: 0.1;
+/* ========================================
+   20. Utility Classes
+   ======================================== */
+.d-none {
+    display: none !important;
 }
 
-/* Bootstrap icon alignment */
-.bi {
-    vertical-align: -0.125em;
+.text-center {
+    text-align: center !important;
+}
+
+.w-100 {
+    width: 100% !important;
+}
+
+.mb-0 { margin-bottom: 0 !important; }
+.mb-3 { margin-bottom: 1.5rem !important; }
+.mt-3 { margin-top: 1.5rem !important; }
+.mt-4 { margin-top: 2rem !important; }
+.mt-5 { margin-top: 3rem !important; }
+
+.small {
+    font-size: 0.875rem;
+}
+
+.fw-bold {
+    font-weight: 700 !important;
+}
+
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
 }
