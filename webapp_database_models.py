@@ -16,8 +16,7 @@ Usage in your webapp:
 """
 
 from sqlalchemy import create_engine, Column, Integer, String, Float, Date, ForeignKey, UniqueConstraint
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship, sessionmaker, Session
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session, joinedload
 from datetime import datetime
 from typing import Tuple
 import os
