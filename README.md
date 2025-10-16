@@ -250,17 +250,67 @@ pip install -r requirements.txt
 
 ## 🔜 Melhorias Futuras
 
-Algumas ideias para expandir o projeto:
+### 🎯 Prioridades (Quick Wins)
+- [ ] **Preços ajustados pela inflação** - Visualização de valores reais vs nominais usando IPCA
+- [ ] **Taxa de depreciação** - Mostrar % de desvalorização por ano/período
+- [ ] **Exportar para Excel/CSV** - Download de dados para análise offline
+- [ ] **Sugestões de veículos similares** - Ajudar a descobrir alternativas
+- [ ] **Modo escuro** - Tema dark para análises noturnas
 
-- [ ] Comparação de múltiplos veículos no mesmo gráfico
-- [ ] Tabela de dados abaixo do gráfico
-- [ ] Exportar dados para CSV/Excel
-- [ ] Filtros adicionais (marca, faixa de preço, etc.)
-- [ ] Sistema de favoritos
-- [ ] Gráficos adicionais (barras, pizza, etc.)
-- [ ] Cache de dados para melhor performance
-- [ ] Autenticação de usuários
-- [ ] API REST completa
+### 📊 Análise de Dados & Insights
+- [ ] **Dashboard de tendências de mercado** - Quais marcas/segmentos estão valorizando
+- [ ] **Análise de depreciação** - Taxa média por marca/modelo/ano
+- [ ] **Detector de anomalias** - Carros que estão valorizando inesperadamente
+- [ ] **Previsão de valores** - Regressão linear para estimar preços futuros
+- [ ] **Análise sazonal** - Melhores/piores meses para comprar/vender
+- [ ] **Comparação "Real vs Nominal"** - Valorização real ajustada por inflação
+
+### 🔍 Ferramentas de Comparação
+- [ ] **Análise de segmentos** - Comparar categorias inteiras (SUVs, sedãs, hatches)
+- [ ] **Prêmio de marca** - Quanto a mais cada marca cobra vs média do mercado
+- [ ] **Comparação por tipo de combustível** - Evolução de preços gasolina vs flex vs diesel
+- [ ] **Veículos concorrentes** - Sugestões automáticas baseadas em faixa de preço/categoria
+
+### 💡 Visualizações Avançadas
+- [ ] **Scatter plots** - Preço vs idade, correlações diversas
+- [ ] **Heatmaps** - Melhores meses para comprar por marca/modelo
+- [ ] **Gráficos de distribuição** - Faixas de preço por categoria
+- [ ] **Anotações em gráficos** - Marcar eventos importantes (crise dos chips, etc.)
+- [ ] **Tabela de dados** - Exibir dados tabulares abaixo dos gráficos
+
+### 🎯 Recursos para Usuários
+- [ ] **Watchlist & Alertas** - Salvar veículos favoritos e receber notificações
+- [ ] **Portfolio tracker** - Acompanhar valor dos seus veículos ao longo do tempo
+- [ ] **Calculadora de financiamento** - Com depreciação integrada
+- [ ] **Otimizador "quando vender"** - Sugerir melhor momento de venda
+- [ ] **Custo total de propriedade** - Estimativa incluindo depreciação
+
+### 🚗 Para Entusiastas de Carros
+- [ ] **Tracker de carros clássicos** - Seção especial para veículos valorizando
+- [ ] **Potencial de investimento** - Score para carros entrando em "classic territory"
+- [ ] **Integração com dados de performance** - HP, 0-100, consumo vs preço
+- [ ] **Análise preço por HP** - Value proposition comparisons
+- [ ] **Impacto de quilometragem** - Como km rodados afetam depreciação
+
+### 🎨 UI/UX
+- [ ] **Filtros rápidos** - Por combustível, faixa de preço, ano, segmento
+- [ ] **Otimização mobile** - Touch gestures, swipe entre veículos
+- [ ] **Busca avançada** - Por código FIPE, busca full-text
+- [ ] **Pesquisas salvas** - Guardar combinações de filtros
+- [ ] **Modo comparação melhorado** - Drag & drop de veículos
+
+### 🔧 Melhorias Técnicas
+- [ ] **Cache de dados** - Redis/Memcached para melhor performance
+- [ ] **Indicadores de atualização** - Mostrar quando dados foram atualizados
+- [ ] **Auto-refresh** - Opção de atualização automática
+- [ ] **Autenticação de usuários** - Sistema de contas
+- [ ] **API REST completa** - Documentação Swagger/OpenAPI
+
+### 👥 Features Comunitárias
+- [ ] **Comentários e notas** - Usuários podem adicionar observações sobre veículos
+- [ ] **Sistema de votação** - "Melhor custo-benefício" votado pela comunidade
+- [ ] **Compartilhar análises** - Links compartilháveis de comparações
+- [ ] **Exportar relatórios PDF** - Gerar PDFs profissionais com análises
 
 ## 📚 Documentação Adicional
 
