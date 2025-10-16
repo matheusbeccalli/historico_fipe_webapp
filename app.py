@@ -28,9 +28,9 @@ app.config.from_object(get_config())
 engine = create_engine(app.config['DATABASE_URL'])
 SessionLocal = sessionmaker(bind=engine)
 
-# Parse API keys from config and store as a set for fast lookup
+# Parse allowed API keys from config and store as a set for fast lookup
 VALID_API_KEYS = set()
-api_keys_str = app.config.get('API_KEYS', '')
+api_keys_str = app.config.get('API_KEYS_ALLOWED', '')
 if api_keys_str:
     VALID_API_KEYS = {key.strip() for key in api_keys_str.split(',') if key.strip()}
 
@@ -94,18 +94,20 @@ def require_api_key(f):
 # ============================================================================
 
 @app.route('/')
-@require_api_key
 def index():
     """
     Main page route.
 
     Renders the index.html template with the default car information.
     The template will then load the actual data via JavaScript API calls.
+    Note: This route does NOT require API key - it's the public-facing page.
+    The API key is injected into the template for the frontend to use.
     """
     return render_template(
         'index.html',
         default_brand=app.config.get('DEFAULT_BRAND', 'Volkswagen'),
-        default_model=app.config.get('DEFAULT_MODEL', 'Gol')
+        default_model=app.config.get('DEFAULT_MODEL', 'Gol'),
+        api_key=app.config.get('API_KEY', '')
     )
 
 

@@ -220,7 +220,11 @@ function clearStatistics() {
  */
 async function loadBrands() {
     try {
-        const response = await fetch('/api/brands');
+        const response = await fetch('/api/brands', {
+            headers: {
+                'X-API-Key': window.API_KEY
+            }
+        });
         const brands = await response.json();
         
         const brandSelect = document.getElementById('brandSelect');
@@ -245,7 +249,11 @@ async function loadBrands() {
  */
 async function loadModels(brandId) {
     try {
-        const response = await fetch(`/api/models/${brandId}`);
+        const response = await fetch(`/api/models/${brandId}`, {
+            headers: {
+                'X-API-Key': window.API_KEY
+            }
+        });
         const models = await response.json();
         
         const modelSelect = document.getElementById('modelSelect');
@@ -276,7 +284,11 @@ async function loadModels(brandId) {
  */
 async function loadYears(modelId) {
     try {
-        const response = await fetch(`/api/years/${modelId}`);
+        const response = await fetch(`/api/years/${modelId}`, {
+            headers: {
+                'X-API-Key': window.API_KEY
+            }
+        });
         const years = await response.json();
         
         const yearSelect = document.getElementById('yearSelect');
@@ -306,7 +318,11 @@ async function loadMonths(yearId = null) {
     try {
         // Build URL with optional year_id parameter
         const url = yearId ? `/api/months?year_id=${yearId}` : '/api/months';
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            headers: {
+                'X-API-Key': window.API_KEY
+            }
+        });
         availableMonths = await response.json();
 
         const startMonthSelect = document.getElementById('startMonth');
@@ -376,7 +392,8 @@ async function updateComparisonChart() {
         const response = await fetch('/api/compare-vehicles', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-API-Key': window.API_KEY
             },
             body: JSON.stringify({
                 vehicle_ids: vehicleIds,
@@ -790,7 +807,8 @@ async function fetchEconomicIndicators(startDate, endDate) {
         const response = await fetch('/api/economic-indicators', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-API-Key': window.API_KEY
             },
             body: JSON.stringify({
                 start_date: startDate,
@@ -981,7 +999,11 @@ function updateStatistics(data) {
  */
 async function loadDefaultVehicle() {
     try {
-        const response = await fetch('/api/default-car');
+        const response = await fetch('/api/default-car', {
+            headers: {
+                'X-API-Key': window.API_KEY
+            }
+        });
         const defaultCar = await response.json();
 
         if (!defaultCar.brand_id || !defaultCar.model_id || !defaultCar.year_id) {

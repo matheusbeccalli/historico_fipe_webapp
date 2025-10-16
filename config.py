@@ -38,9 +38,13 @@ class Config:
     DEFAULT_MODEL = os.getenv('DEFAULT_MODEL', 'Gol')  # Will search for models containing "Gol"
 
     # API Key Authentication
-    # Comma-separated list of valid API keys
-    # Example: API_KEYS=key1,key2,key3
-    API_KEYS = os.getenv('API_KEYS', '')
+    # API_KEY: The application's own API key (used by frontend to make API calls)
+    API_KEY = os.getenv('API_KEY', '')
+
+    # API_KEYS_ALLOWED: Comma-separated list of valid API keys that can access the API
+    # Should include API_KEY plus any external client keys
+    # Example: API_KEYS_ALLOWED=app-key-123,external-key-456,partner-key-789
+    API_KEYS_ALLOWED = os.getenv('API_KEYS_ALLOWED', '')
     
 
 class DevelopmentConfig(Config):
