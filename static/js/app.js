@@ -760,65 +760,59 @@ function renderComparisonChart() {
 }
 
 /**
- * Update statistics for comparison view
+ * Update statistics for comparison view - creates individual cards for each vehicle
  */
 function updateComparisonStatistics() {
     if (selectedVehicles.length === 0) return;
 
-    // Collect all prices from all vehicles
-    let allPrices = [];
-    let latestPrices = [];
-    let firstPrices = [];
+    const container = document.getElementById('vehicleStatsContainer');
+    container.innerHTML = '';
 
-    selectedVehicles.forEach(vehicle => {
-        if (vehicle.data && vehicle.data.length > 0) {
-            const prices = vehicle.data.map(d => d.price);
-            allPrices = allPrices.concat(prices);
-            latestPrices.push(prices[prices.length - 1]);
-            firstPrices.push(prices[0]);
-        }
+    selectedVehicles.forEach((vehicle, index) => {
+        if (!vehicle.data || vehicle.data.length === 0) return;
+
+        const prices = vehicle.data.map(d => d.price);
+        const currentPrice = prices[prices.length - 1];
+        const firstPrice = prices[0];
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const priceChange = ((currentPrice - firstPrice) / firstPrice) * 100;
+
+        // Create vehicle stats card
+        const card = document.createElement('div');
+        card.className = 'vehicle-stats-card';
+        card.style.borderLeftColor = vehicle.color;
+        card.style.animationDelay = `${index * 0.1}s`;
+
+        card.innerHTML = `
+            <div class="vehicle-stats-header">
+                <div class="vehicle-stats-color-indicator" style="background-color: ${vehicle.color}"></div>
+                <h3 class="vehicle-stats-title">${vehicle.brand} ${vehicle.model} (${vehicle.year})</h3>
+            </div>
+            <div class="vehicle-stats-grid">
+                <div class="vehicle-stat-item">
+                    <div class="vehicle-stat-label">Preço Atual</div>
+                    <div class="vehicle-stat-value">${formatBRL(currentPrice)}</div>
+                </div>
+                <div class="vehicle-stat-item">
+                    <div class="vehicle-stat-label">Preço Mínimo</div>
+                    <div class="vehicle-stat-value">${formatBRL(minPrice)}</div>
+                </div>
+                <div class="vehicle-stat-item">
+                    <div class="vehicle-stat-label">Preço Máximo</div>
+                    <div class="vehicle-stat-value">${formatBRL(maxPrice)}</div>
+                </div>
+                <div class="vehicle-stat-item">
+                    <div class="vehicle-stat-label">Variação</div>
+                    <div class="vehicle-stat-value ${priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : ''}">
+                        ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}%
+                    </div>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(card);
     });
-
-    if (allPrices.length === 0) return;
-
-    // Calculate statistics
-    const avgCurrentPrice = latestPrices.reduce((a, b) => a + b, 0) / latestPrices.length;
-    const avgFirstPrice = firstPrices.reduce((a, b) => a + b, 0) / firstPrices.length;
-    const minPrice = Math.min(...allPrices);
-    const maxPrice = Math.max(...allPrices);
-    const avgChange = ((avgCurrentPrice - avgFirstPrice) / avgFirstPrice) * 100;
-
-    // Animate the statistics
-    const currentPriceEl = document.getElementById('currentPrice');
-    const minPriceEl = document.getElementById('minPrice');
-    const maxPriceEl = document.getElementById('maxPrice');
-    const priceChangeEl = document.getElementById('priceChange');
-
-    // Add stagger animation to stat cards
-    const statCards = document.querySelectorAll('.stat-card');
-    statCards.forEach((card, index) => {
-        card.style.animation = 'none';
-        setTimeout(() => {
-            card.style.animation = `slideInUp 0.5s ease-out ${index * 0.1}s both`;
-        }, 10);
-    });
-
-    // Animate numbers
-    setTimeout(() => {
-        animateValue(currentPriceEl, 0, avgCurrentPrice, 1000);
-        animateValue(minPriceEl, 0, minPrice, 1000);
-        animateValue(maxPriceEl, 0, maxPrice, 1000);
-        animateValue(priceChangeEl, 0, avgChange, 1000);
-    }, 200);
-
-    // Add color based on change direction
-    if (avgChange > 0) {
-        priceChangeEl.className = 'mb-0 text-success';
-    } else if (avgChange < 0) {
-        priceChangeEl.className = 'mb-0 text-danger';
-    } else {
-        priceChangeEl.className = 'mb-0 text-secondary';
-    }
 }
 
 /**
