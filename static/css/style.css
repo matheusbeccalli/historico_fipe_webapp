@@ -7,24 +7,24 @@
    1. CSS Variables & Design System
    ======================================== */
 :root {
-    /* Warm Professional Color Palette */
+    /* Cool Professional Color Palette - Blue/Indigo */
     --color-bg-primary: #ffffff;
-    --color-bg-secondary: #fffbf5;
-    --color-bg-tertiary: #fef8f0;
-    --color-accent: #d97706;
-    --color-accent-light: #fbbf24;
-    --color-accent-dark: #b45309;
+    --color-bg-secondary: #eff6ff;
+    --color-bg-tertiary: #dbeafe;
+    --color-accent: #2563eb;
+    --color-accent-light: #3b82f6;
+    --color-accent-dark: #4f46e5;
     --color-text-primary: #111827;
-    --color-text-secondary: #78350f;
-    --color-text-muted: #92400e;
-    --color-border: #fed7aa;
-    --color-border-light: #fef3c7;
+    --color-text-secondary: #1e40af;
+    --color-text-muted: #1e3a8a;
+    --color-border: #93c5fd;
+    --color-border-light: #bfdbfe;
 
     /* Shadows */
-    --shadow-sm: 0 1px 3px 0 rgba(217, 119, 6, 0.05), 0 1px 2px -1px rgba(217, 119, 6, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(217, 119, 6, 0.08), 0 2px 4px -2px rgba(217, 119, 6, 0.08);
-    --shadow-lg: 0 10px 15px -3px rgba(217, 119, 6, 0.12), 0 4px 6px -4px rgba(217, 119, 6, 0.12);
-    --shadow-xl: 0 20px 25px -5px rgba(217, 119, 6, 0.15), 0 8px 10px -6px rgba(217, 119, 6, 0.15);
+    --shadow-sm: 0 1px 3px 0 rgba(37, 99, 235, 0.05), 0 1px 2px -1px rgba(37, 99, 235, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(37, 99, 235, 0.08), 0 2px 4px -2px rgba(37, 99, 235, 0.08);
+    --shadow-lg: 0 10px 15px -3px rgba(37, 99, 235, 0.12), 0 4px 6px -4px rgba(37, 99, 235, 0.12);
+    --shadow-xl: 0 20px 25px -5px rgba(37, 99, 235, 0.15), 0 8px 10px -6px rgba(37, 99, 235, 0.15);
 
     /* Typography */
     --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
@@ -228,7 +228,7 @@ h6 { font-size: 1rem; }
     color: var(--color-text-primary);
     transition: all var(--transition-base);
     cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23d97706' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%232563eb' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 1rem center;
     background-size: 16px;
@@ -244,7 +244,7 @@ h6 { font-size: 1rem; }
     outline: none;
     border-color: var(--color-accent);
     background-color: var(--color-bg-primary);
-    box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.1);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
     transform: translateY(-1px);
 }
 
@@ -280,7 +280,7 @@ h6 { font-size: 1rem; }
 .btn-primary {
     background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
     color: white;
-    box-shadow: var(--shadow-md), 0 0 20px rgba(217, 119, 6, 0.2);
+    box-shadow: var(--shadow-md), 0 0 20px rgba(37, 99, 235, 0.2);
 }
 
 .btn-primary::before {
@@ -296,7 +296,7 @@ h6 { font-size: 1rem; }
 
 .btn-primary:hover:not(:disabled) {
     transform: translateY(-2px) scale(1.02);
-    box-shadow: var(--shadow-lg), 0 0 30px rgba(217, 119, 6, 0.4);
+    box-shadow: var(--shadow-lg), 0 0 30px rgba(37, 99, 235, 0.4);
     background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-accent) 100%);
 }
 
@@ -409,43 +409,49 @@ h6 { font-size: 1rem; }
     background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-accent-dark) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-size: 1.5rem !important;
 }
 
 #minPrice {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-size: 1.5rem !important;
 }
 
 #maxPrice {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    font-size: 1.5rem !important;
 }
 
 #priceChange.text-success {
     background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
+    font-size: 1.5rem !important;
 }
 
 #priceChange.text-danger {
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
+    font-size: 1.5rem !important;
 }
 
 #priceChange.text-secondary {
     background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
+    font-size: 1.5rem !important;
 }
 
 /* ========================================
    11. Alert & Info Components
    ======================================== */
 #carInfo {
-    background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(251, 191, 36, 0.08) 100%);
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(79, 70, 229, 0.08) 100%);
     border: 2px solid var(--color-border);
     border-left: 6px solid var(--color-accent);
     border-radius: var(--radius-lg);

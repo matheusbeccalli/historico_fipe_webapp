@@ -271,21 +271,21 @@ function renderChart(data) {
         mode: 'lines+markers',
         name: 'Preço',
         line: {
-            color: '#d97706',
+            color: '#2563eb',
             width: 3,
             shape: 'spline',
             smoothing: 0.8
         },
         marker: {
             size: 8,
-            color: '#d97706',
+            color: '#2563eb',
             line: {
                 color: '#fff',
                 width: 2
             }
         },
         fill: 'tozeroy',
-        fillcolor: 'rgba(217, 119, 6, 0.08)',
+        fillcolor: 'rgba(37, 99, 235, 0.08)',
         hovertemplate: '<b>%{x}</b><br>' +
                       'Preço: R$ %{y:,.2f}<br>' +
                       '<extra></extra>'
@@ -313,7 +313,7 @@ function renderChart(data) {
                     size: 14,
                     family: 'Inter, -apple-system, sans-serif',
                     weight: 600,
-                    color: '#92400e'
+                    color: '#1e3a8a'
                 }
             },
             tickangle: -45,
@@ -321,12 +321,12 @@ function renderChart(data) {
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
-                color: '#78350f'
+                color: '#1e3a8a'
             },
-            gridcolor: '#fef3c7',
+            gridcolor: '#dbeafe',
             gridwidth: 1,
             showline: true,
-            linecolor: '#fed7aa',
+            linecolor: '#93c5fd',
             linewidth: 2
         },
         yaxis: {
@@ -336,7 +336,7 @@ function renderChart(data) {
                     size: 14,
                     family: 'Inter, -apple-system, sans-serif',
                     weight: 600,
-                    color: '#92400e'
+                    color: '#1e3a8a'
                 }
             },
             tickformat: ',.0f',
@@ -344,17 +344,17 @@ function renderChart(data) {
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
-                color: '#78350f'
+                color: '#1e3a8a'
             },
-            gridcolor: '#fef3c7',
+            gridcolor: '#dbeafe',
             gridwidth: 1,
             showline: true,
-            linecolor: '#fed7aa',
+            linecolor: '#93c5fd',
             linewidth: 2,
             zeroline: false
         },
         hovermode: 'x unified',
-        plot_bgcolor: '#fffbf5',
+        plot_bgcolor: '#eff6ff',
         paper_bgcolor: 'white',
         margin: {
             l: 80,
@@ -364,7 +364,7 @@ function renderChart(data) {
         },
         hoverlabel: {
             bgcolor: '#111827',
-            bordercolor: '#d97706',
+            bordercolor: '#2563eb',
             font: {
                 size: 14,
                 family: 'Inter, -apple-system, sans-serif',

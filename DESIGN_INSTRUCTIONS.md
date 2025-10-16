@@ -1,12 +1,12 @@
 Create a webapp that looks like it belongs on Awwwards/Dribbble. 
 
 **Visual Style:**
-- Neutral backgrounds, single accent color, refined typography, subtle interactions, premium spacing
+- Neutral backgrounds, single accent color, refined typography, subtle interactions, premium spacing](DESIGN_INSTRUCTIONS.md)
 - Color combinations:
   - Warm Professional
-    - Background: white to amber-50
-    - Accents: amber-600 to orange-600
-    - Text: gray-900 / amber-800
+    - Background: white to blue-50
+    - Accents: blue-600 to indigo-600
+    - Text: gray-900 / blue-800
 
 
 **Make it premium enough that I'd screenshot and share it. Add:**
