@@ -10,6 +10,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import json
+import requests
+from functools import reduce
 
 # Import our database models and config
 from webapp_database_models import (
@@ -573,20 +575,20 @@ def get_default_car():
     try:
         default_brand = app.config.get('DEFAULT_BRAND', 'Volkswagen')
         default_model = app.config.get('DEFAULT_MODEL', 'Gol')
-        
+
         # Find the brand
         brand = (
             db.query(Brand)
             .filter(Brand.brand_name == default_brand)
             .first()
         )
-        
+
         if not brand:
             # If default brand not found, just get the first brand
             brand = db.query(Brand).order_by(Brand.brand_name).first()
             if not brand:
                 return jsonify({"error": "No brands found in database"}), 404
-        
+
         # Find a model containing the default model name
         model = (
             db.query(CarModel)
@@ -596,7 +598,7 @@ def get_default_car():
             )
             .first()
         )
-        
+
         if not model:
             # If default model not found, get the first model for this brand
             model = (
@@ -605,10 +607,10 @@ def get_default_car():
                 .order_by(CarModel.model_name)
                 .first()
             )
-        
+
         if not model:
             return jsonify({"error": "No models found for default brand"}), 404
-        
+
         # Find the most recent year for this model
         year = (
             db.query(ModelYear)
@@ -616,18 +618,114 @@ def get_default_car():
             .order_by(ModelYear.year_description.desc())
             .first()
         )
-        
+
         if not year:
             return jsonify({"error": "No years found for default model"}), 404
-        
+
         return jsonify({
             "brand_id": brand.id,
             "model_id": model.id,
             "year_id": year.id
         })
-    
+
     finally:
         db.close()
+
+
+@app.route('/api/economic-indicators', methods=['POST'])
+def get_economic_indicators():
+    """
+    Get economic indicators (IPCA and CDI) from Banco Central do Brasil API
+    for a given date range.
+
+    Expects JSON POST body:
+    {
+        "start_date": "2023-01-01",
+        "end_date": "2024-12-01"
+    }
+
+    Returns:
+        JSON object with accumulated IPCA and CDI for the period:
+        {
+            "ipca": 5.45,  // Accumulated IPCA % in period
+            "cdi": 12.30   // Accumulated CDI % in period
+        }
+    """
+    try:
+        # Get parameters from POST request body
+        data = request.get_json()
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+
+        # Validate required parameters
+        if not start_date or not end_date:
+            return jsonify({"error": "start_date and end_date are required"}), 400
+
+        # Convert date strings to datetime objects
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+            end_dt = datetime.fromisoformat(end_date)
+        except (ValueError, TypeError):
+            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
+        # Format dates for BCB API (dd/MM/yyyy)
+        start_date_bcb = start_dt.strftime('%d/%m/%Y')
+        end_date_bcb = end_dt.strftime('%d/%m/%Y')
+
+        # Banco Central API URLs
+        # Series 433: IPCA (monthly variation %)
+        # Series 4391: CDI (monthly accumulated %)
+        ipca_url = f'https://api.bcb.gov.br/dados/serie/bcdata.sgs.433/dados?formato=json&dataInicial={start_date_bcb}&dataFinal={end_date_bcb}'
+        cdi_url = f'https://api.bcb.gov.br/dados/serie/bcdata.sgs.4391/dados?formato=json&dataInicial={start_date_bcb}&dataFinal={end_date_bcb}'
+
+        # Fetch IPCA data
+        try:
+            ipca_response = requests.get(ipca_url, timeout=10)
+            ipca_response.raise_for_status()
+            ipca_data = ipca_response.json()
+        except Exception as e:
+            app.logger.error(f"Error fetching IPCA data: {str(e)}")
+            ipca_data = []
+
+        # Fetch CDI data
+        try:
+            cdi_response = requests.get(cdi_url, timeout=10)
+            cdi_response.raise_for_status()
+            cdi_data = cdi_response.json()
+        except Exception as e:
+            app.logger.error(f"Error fetching CDI data: {str(e)}")
+            cdi_data = []
+
+        # Calculate accumulated values
+        # For IPCA and CDI, we need to compound the monthly rates
+        # Formula: (1 + r1/100) * (1 + r2/100) * ... - 1
+        def calculate_accumulated(data_list):
+            if not data_list:
+                return None
+            try:
+                # Compound the rates
+                accumulated = reduce(
+                    lambda acc, item: acc * (1 + float(item['valor']) / 100),
+                    data_list,
+                    1.0
+                )
+                # Convert back to percentage and subtract 1
+                return (accumulated - 1) * 100
+            except (ValueError, KeyError):
+                return None
+
+        ipca_accumulated = calculate_accumulated(ipca_data)
+        cdi_accumulated = calculate_accumulated(cdi_data)
+
+        return jsonify({
+            "ipca": round(ipca_accumulated, 2) if ipca_accumulated is not None else None,
+            "cdi": round(cdi_accumulated, 2) if cdi_accumulated is not None else None
+        })
+
+    except Exception as e:
+        # Log the error and return a user-friendly message
+        app.logger.error(f"Error in get_economic_indicators: {str(e)}")
+        return jsonify({"error": "An error occurred while fetching economic indicators"}), 500
 
 
 # ============================================================================

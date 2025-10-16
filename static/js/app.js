@@ -783,15 +783,47 @@ function renderComparisonChart() {
 }
 
 /**
+ * Fetch economic indicators from API
+ */
+async function fetchEconomicIndicators(startDate, endDate) {
+    try {
+        const response = await fetch('/api/economic-indicators', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                start_date: startDate,
+                end_date: endDate
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch economic indicators');
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching economic indicators:', error);
+        return { ipca: null, cdi: null };
+    }
+}
+
+/**
  * Update statistics for comparison view - creates individual cards for each vehicle
  */
-function updateComparisonStatistics() {
+async function updateComparisonStatistics() {
     if (selectedVehicles.length === 0) return;
 
     const chartType = document.getElementById('chartType').value;
     const isBase100 = chartType === 'base100';
     const container = document.getElementById('vehicleStatsContainer');
     container.innerHTML = '';
+
+    // Fetch economic indicators
+    const startDate = document.getElementById('startMonth').value;
+    const endDate = document.getElementById('endMonth').value;
+    const indicators = await fetchEconomicIndicators(startDate, endDate);
 
     selectedVehicles.forEach((vehicle, index) => {
         if (!vehicle.data || vehicle.data.length === 0) return;
@@ -850,6 +882,18 @@ function updateComparisonStatistics() {
                     <div class="vehicle-stat-label">Variação</div>
                     <div class="vehicle-stat-value ${priceChange > 0 ? 'positive' : priceChange < 0 ? 'negative' : ''}">
                         ${priceChange > 0 ? '+' : ''}${priceChange.toFixed(2)}%
+                    </div>
+                </div>
+                <div class="vehicle-stat-item">
+                    <div class="vehicle-stat-label">IPCA no Período</div>
+                    <div class="vehicle-stat-value ${indicators.ipca !== null ? 'neutral' : ''}">
+                        ${indicators.ipca !== null ? (indicators.ipca > 0 ? '+' : '') + indicators.ipca.toFixed(2) + '%' : 'N/A'}
+                    </div>
+                </div>
+                <div class="vehicle-stat-item">
+                    <div class="vehicle-stat-label">CDI no Período</div>
+                    <div class="vehicle-stat-value ${indicators.cdi !== null ? 'neutral' : ''}">
+                        ${indicators.cdi !== null ? (indicators.cdi > 0 ? '+' : '') + indicators.cdi.toFixed(2) + '%' : 'N/A'}
                     </div>
                 </div>
             </div>

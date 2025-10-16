@@ -12,6 +12,9 @@ SQLAlchemy==2.0.36
 # Environment variable management
 python-dotenv==1.0.0
 
+# HTTP requests library for external APIs
+requests==2.31.0
+
 # For PostgreSQL support (optional, only needed in production)
 # Uncomment the line below if you plan to use PostgreSQL
 # psycopg2-binary==2.9.9
