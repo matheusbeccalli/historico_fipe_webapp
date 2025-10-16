@@ -45,7 +45,7 @@ historico_fipe_webapp/
 
 - Python 3.8 ou superior
 - pip (gerenciador de pacotes Python)
-- Banco de dados SQLite com dados FIPE (fipe_data.db)
+- Banco de dados SQLite ou Postgre com dados FIPE (fipe_data.db)
 
 ### Passo 1: Clone ou crie o projeto
 
