@@ -2,6 +2,8 @@
 
 Uma aplicação web para visualizar o histórico de preços de veículos da Tabela FIPE.
 
+> **⚠️ IMPORTANTE:** Este projeto é apenas a interface web (webapp) e **requer um banco de dados separado** com os dados históricos da Tabela FIPE. O banco de dados e os dados **NÃO estão incluídos** neste repositório. Você precisará de um scraper ou fonte de dados separada para popular o banco antes de usar esta aplicação.
+
 ## 📋 Funcionalidades
 
 - ✅ Seleção de veículos com dropdowns em cascata (Marca → Modelo → Ano)
@@ -49,7 +51,11 @@ historico_fipe_webapp/
 
 - Python 3.8 ou superior
 - pip (gerenciador de pacotes Python)
-- Banco de dados SQLite ou Postgre com dados FIPE (fipe_data.db)
+- **Banco de dados SQLite ou PostgreSQL com dados históricos da Tabela FIPE**
+  - ⚠️ O banco de dados **NÃO está incluído** neste projeto
+  - Você precisa ter um `fipe_data.db` populado com dados antes de usar esta aplicação
+  - Use um scraper separado para coletar dados da Tabela FIPE
+  - Consulte [docs/database_schema.md](docs/database_schema.md) para ver a estrutura necessária
 
 ### Passo 1: Clone ou crie o projeto
 
@@ -205,8 +211,11 @@ pip install -r requirements.txt
 ```
 
 ### Erro: "Unable to open database file"
+- **Verifique se você tem um banco de dados FIPE** - este projeto NÃO inclui os dados
 - Verifique se o caminho do banco em `.env` (variável `DATABASE_URL`) está correto
+- Certifique-se de que o banco de dados foi populado com dados da Tabela FIPE
 - Verifique se você tem permissão de leitura no arquivo
+- Consulte [docs/database_schema.md](docs/database_schema.md) para a estrutura esperada
 - Veja o guia de configuração: [docs/ENV_SETUP.md](docs/ENV_SETUP.md)
 
 ### Gráfico não carrega
