@@ -88,13 +88,32 @@ Edite `config.py` linha 21:
 DATABASE_URL = 'sqlite:///C:/SEU/CAMINHO/AQUI/fipe_data.db'
 ```
 
-### 2. (Opcional) Mude o veículo padrão
+### 2. Configure as chaves de API
 
-Edite `config.py` linhas 29-30:
+Copie `.env.example` para `.env` e gere uma chave API:
 
-```python
-DEFAULT_BRAND = "Volkswagen"
-DEFAULT_MODEL = "Gol"
+```bash
+# Copiar arquivo de exemplo
+cp .env.example .env
+
+# Gerar chave segura
+python -c "import secrets; print(secrets.token_urlsafe(32))"
+```
+
+Edite `.env` e adicione sua chave:
+
+```bash
+API_KEY=sua-chave-gerada-aqui
+API_KEYS_ALLOWED=sua-chave-gerada-aqui
+```
+
+### 3. (Opcional) Mude o veículo padrão
+
+Edite `.env`:
+
+```bash
+DEFAULT_BRAND=Volkswagen
+DEFAULT_MODEL=Gol
 ```
 
 ## 🌐 Acessando a Aplicação
@@ -117,7 +136,10 @@ http://localhost:5000
 **Solução:** Certifique-se de que o ambiente virtual está ativado e rode `pip install -r requirements.txt`
 
 ### Erro: "unable to open database file"
-**Solução:** Ajuste o caminho do banco de dados em `config.py`
+**Solução:** Ajuste o caminho do banco de dados em `.env` (variável `DATABASE_URL`)
+
+### Erro: "API key required"
+**Solução:** Configure `API_KEY` e `API_KEYS_ALLOWED` no arquivo `.env`
 
 ### Página não carrega
 **Solução:** 
@@ -133,18 +155,20 @@ http://localhost:5000
 
 ## 📱 Testando as APIs
 
-Você pode testar as APIs diretamente:
+As APIs requerem autenticação via header `X-API-Key`:
 
 ```bash
 # Listar marcas
-curl http://127.0.0.1:5000/api/brands
+curl -H "X-API-Key: sua-chave-aqui" http://127.0.0.1:5000/api/brands
 
 # Listar modelos (exemplo: brand_id = 3)
-curl http://127.0.0.1:5000/api/models/3
+curl -H "X-API-Key: sua-chave-aqui" http://127.0.0.1:5000/api/models/3
 
 # Listar meses disponíveis
-curl http://127.0.0.1:5000/api/months
+curl -H "X-API-Key: sua-chave-aqui" http://127.0.0.1:5000/api/months
 ```
+
+**Nota:** Se nenhuma chave estiver configurada no `.env`, o acesso será permitido em modo desenvolvimento (com aviso no log).
 
 ## 🎯 Próximos Passos
 

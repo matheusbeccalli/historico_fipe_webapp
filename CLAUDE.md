@@ -39,6 +39,9 @@ cp .env.example .env
 
 # Generate a secure secret key for production
 python generate_secret_key.py
+
+# Generate a secure API key
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 ## Architecture Overview
@@ -83,6 +86,8 @@ The application uses **environment-based configuration** with `.env` files:
 **Important environment variables**:
 - `DATABASE_URL` - Database connection string
 - `SECRET_KEY` - Flask session secret (use `generate_secret_key.py` to create)
+- `API_KEY` - Application's own API key (injected into frontend for API calls)
+- `API_KEYS_ALLOWED` - Comma-separated list of valid API keys (must include API_KEY)
 - `DEFAULT_BRAND` - Default brand to show on page load
 - `DEFAULT_MODEL` - Default model to show on page load
 - `SQLALCHEMY_ECHO` - Set to "True" to see SQL queries in logs
@@ -295,3 +300,50 @@ Not all vehicle/month combinations exist in the database. Always check if query 
 ### Session Management
 
 Always close database sessions in `finally` blocks. Unclosed sessions will cause connection pool exhaustion. The `get_db()` helper (app.py:30-42) demonstrates the correct pattern.
+
+## API Authentication
+
+### API Key System
+
+The application uses a **two-variable API key system** for authentication:
+
+1. **`API_KEY`** - The application's own key, injected into the frontend JavaScript (`window.API_KEY`) for automatic authentication of browser requests
+2. **`API_KEYS_ALLOWED`** - Comma-separated list of ALL valid API keys that can access the API (must include `API_KEY` plus any external client keys)
+
+**How it works:**
+- All API endpoints (except the index page `/`) require authentication via the `@require_api_key` decorator
+- API key must be provided in the `X-API-Key` HTTP header
+- Frontend automatically includes the key from `window.API_KEY` in all fetch requests
+- If no keys are configured, the app allows access in development mode with a warning
+
+**Configuration example (.env):**
+```bash
+# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
+API_KEY=your-app-key-abc123xyz
+
+# Include API_KEY plus any external client keys
+API_KEYS_ALLOWED=your-app-key-abc123xyz,partner-key-1,partner-key-2
+```
+
+**Logging:**
+- Successful API access: Logs key prefix (first 8 chars), endpoint, method, and IP address
+- Invalid attempts: Logs key prefix, IP address, and attempted endpoint
+- All logs use Flask's standard logger (app.logger)
+
+**Adding API key authentication to new endpoints:**
+```python
+@app.route('/api/new-endpoint', methods=['GET'])
+@require_api_key  # Add this decorator
+def new_endpoint():
+    # Your endpoint code
+    pass
+```
+
+**Frontend JavaScript pattern:**
+```javascript
+const response = await fetch('/api/endpoint', {
+    headers: {
+        'X-API-Key': window.API_KEY  // Automatically included
+    }
+});
+```

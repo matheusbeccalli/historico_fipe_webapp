@@ -6,8 +6,12 @@ Uma aplicação web para visualizar o histórico de preços de veículos da Tabe
 
 - ✅ Seleção de veículos com dropdowns em cascata (Marca → Modelo → Ano)
 - 📊 Gráfico interativo com Plotly mostrando evolução de preços
+- 🔄 Comparação de até 5 veículos no mesmo gráfico
 - 📅 Seleção de período (mês inicial e final)
-- 📈 Estatísticas automáticas (preço atual, mínimo, máximo, variação)
+- 📈 Estatísticas automáticas por veículo (preço atual, mínimo, máximo, variação)
+- 💹 Indicadores econômicos (IPCA e CDI) para contexto
+- 📊 Visualização em preços absolutos ou indexada (Base 100)
+- 🔐 Autenticação com API keys para proteção dos endpoints
 - 🎨 Interface moderna com Bootstrap 5
 - 🔄 Atualizações dinâmicas sem recarregar a página
 - 💾 Suporte para SQLite (desenvolvimento) e PostgreSQL (produção)
@@ -120,13 +124,19 @@ Todas as configurações são gerenciadas via arquivo `.env`. Variáveis dispon�
 - `FLASK_ENV` - Ambiente (`development` ou `production`)
 - `DATABASE_URL` - String de conexão do banco de dados
 - `SECRET_KEY` - Chave secreta para sessões Flask
+- `API_KEY` - Chave da aplicação (usada pelo frontend para autenticação)
+- `API_KEYS_ALLOWED` - Lista de chaves válidas separadas por vírgula (deve incluir API_KEY)
 - `DEFAULT_BRAND` - Marca padrão ao carregar a página
 - `DEFAULT_MODEL` - Modelo padrão ao carregar a página
 - `SQLALCHEMY_ECHO` - Mostrar queries SQL (`True` ou `False`)
 
-Para gerar uma chave secreta segura:
+Para gerar chaves seguras:
 ```bash
+# Gerar SECRET_KEY
 python generate_secret_key.py
+
+# Gerar API_KEY
+python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 **📖 Documentação completa:** [docs/ENV_SETUP.md](docs/ENV_SETUP.md)
@@ -165,15 +175,27 @@ DEFAULT_MODEL=Gol  # Busca modelos contendo "Gol"
 
 ## 📡 Endpoints da API
 
-A aplicação expõe os seguintes endpoints JSON:
+A aplicação expõe os seguintes endpoints JSON (requerem autenticação via header `X-API-Key`):
 
 - `GET /api/brands` - Lista todas as marcas
 - `GET /api/models/<brand_id>` - Lista modelos de uma marca
 - `GET /api/years/<model_id>` - Lista anos de um modelo
 - `GET /api/months` - Lista todos os meses disponíveis
 - `POST /api/chart-data` - Retorna dados para o gráfico (histórico completo)
+- `POST /api/compare-vehicles` - Retorna dados de múltiplos veículos para comparação
 - `POST /api/price` - Retorna preço de um veículo específico em um mês específico
+- `POST /api/economic-indicators` - Retorna indicadores econômicos (IPCA e CDI)
 - `GET /api/default-car` - Retorna o veículo padrão
+
+### Autenticação
+
+Todos os endpoints da API requerem uma chave de API no header:
+
+```bash
+curl -H "X-API-Key: sua-chave-aqui" http://127.0.0.1:5000/api/brands
+```
+
+O frontend da aplicação automaticamente inclui a chave configurada em `API_KEY`. Para clientes externos, adicione suas chaves em `API_KEYS_ALLOWED` no arquivo `.env`.
 
 ## 🐛 Solução de Problemas
 
@@ -195,6 +217,11 @@ pip install -r requirements.txt
 ### Dropdowns não atualizam
 - Verifique o Console do Navegador para erros JavaScript
 - Confirme que os arquivos em `static/js/` estão sendo carregados
+
+### Erro: "API key required"
+- Configure `API_KEY` e `API_KEYS_ALLOWED` no arquivo `.env`
+- Certifique-se de que `API_KEY` está incluído em `API_KEYS_ALLOWED`
+- Se estiver testando, pode deixar vazio para permitir acesso em modo desenvolvimento
 
 ## 📚 Tecnologias Utilizadas
 
