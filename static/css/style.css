@@ -553,11 +553,43 @@ footer p {
     color: var(--color-text-muted);
     font-weight: 500;
     margin: 0;
+    font-size: 0.75rem;
 }
 
 footer i {
     color: var(--color-accent);
     margin: 0 0.25rem;
+}
+
+footer a,
+.card-text a {
+    color: var(--color-accent);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+footer a::after,
+.card-text a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent-light) 100%);
+    transition: width var(--transition-base);
+}
+
+footer a:hover,
+.card-text a:hover {
+    color: var(--color-accent-light);
+}
+
+footer a:hover::after,
+.card-text a:hover::after {
+    width: 100%;
 }
 
 /* ========================================
@@ -867,17 +899,17 @@ hr {
 }
 
 .vehicle-stat-label {
-    font-size: 0.75rem;
+    font-size: 0.625rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
     font-weight: 600;
     color: var(--color-text-muted);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.375rem;
 }
 
 .vehicle-stat-value {
     font-family: var(--font-display);
-    font-size: 1.25rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--color-text-primary);
 }
