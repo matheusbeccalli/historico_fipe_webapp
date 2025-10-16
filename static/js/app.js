@@ -70,6 +70,22 @@ async function addVehicle() {
     const modelSelect = document.getElementById('modelSelect');
     const yearSelect = document.getElementById('yearSelect');
 
+    // Validate all selections are made
+    if (!brandSelect.value || brandSelect.value === '') {
+        alert('Por favor, selecione uma marca');
+        return;
+    }
+
+    if (!modelSelect.value || modelSelect.value === '') {
+        alert('Por favor, selecione um modelo');
+        return;
+    }
+
+    if (!yearSelect.value || yearSelect.value === '') {
+        alert('Por favor, selecione um ano/combustível');
+        return;
+    }
+
     const yearId = parseInt(yearSelect.value);
     const brandName = brandSelect.options[brandSelect.selectedIndex].text;
     const modelName = modelSelect.options[modelSelect.selectedIndex].text;
