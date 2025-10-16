@@ -605,9 +605,21 @@ function renderChart(data) {
 }
 
 /**
+ * Convert prices to base 100 indexed values
+ */
+function convertToBase100(prices) {
+    if (!prices || prices.length === 0) return [];
+    const basePrice = prices[0];
+    return prices.map(price => (price / basePrice) * 100);
+}
+
+/**
  * Render comparison chart with multiple vehicle traces
  */
 function renderComparisonChart() {
+    const chartType = document.getElementById('chartType').value;
+    const isBase100 = chartType === 'base100';
+
     // Create traces for each vehicle
     const traces = selectedVehicles.map((vehicle, index) => {
         if (!vehicle.data || vehicle.data.length === 0) return null;
@@ -615,9 +627,23 @@ function renderComparisonChart() {
         const dates = vehicle.data.map(d => d.label);
         const prices = vehicle.data.map(d => d.price);
 
+        // Convert to base 100 if needed
+        const yValues = isBase100 ? convertToBase100(prices) : prices;
+
+        // Different hover templates based on chart type
+        const hovertemplate = isBase100
+            ? '<b>%{fullData.name}</b><br>' +
+              '%{x}<br>' +
+              'Índice: %{y:.2f}<br>' +
+              '<extra></extra>'
+            : '<b>%{fullData.name}</b><br>' +
+              '%{x}<br>' +
+              'Preço: R$ %{y:,.2f}<br>' +
+              '<extra></extra>';
+
         return {
             x: dates,
-            y: prices,
+            y: yValues,
             type: 'scatter',
             mode: 'lines+markers',
             name: `${vehicle.brand} ${vehicle.model}`,
@@ -635,10 +661,7 @@ function renderComparisonChart() {
                     width: 2
                 }
             },
-            hovertemplate: '<b>%{fullData.name}</b><br>' +
-                          '%{x}<br>' +
-                          'Preço: R$ %{y:,.2f}<br>' +
-                          '<extra></extra>'
+            hovertemplate: hovertemplate
         };
     }).filter(trace => trace !== null);
 
@@ -646,7 +669,7 @@ function renderComparisonChart() {
     const layout = {
         autosize: true,
         title: {
-            text: 'Comparação de Preços FIPE',
+            text: isBase100 ? 'Comparação de Preços FIPE (Base 100)' : 'Comparação de Preços FIPE',
             font: {
                 size: 24,
                 family: 'Inter, -apple-system, sans-serif',
@@ -683,7 +706,7 @@ function renderComparisonChart() {
         },
         yaxis: {
             title: {
-                text: 'Preço (R$)',
+                text: isBase100 ? 'Índice (Base 100)' : 'Preço (R$)',
                 font: {
                     size: 14,
                     family: 'Inter, -apple-system, sans-serif',
@@ -691,7 +714,7 @@ function renderComparisonChart() {
                     color: '#1e3a8a'
                 }
             },
-            tickformat: ',.0f',
+            tickformat: isBase100 ? ',.2f' : ',.0f',
             automargin: true,
             tickfont: {
                 size: 12,
@@ -765,6 +788,8 @@ function renderComparisonChart() {
 function updateComparisonStatistics() {
     if (selectedVehicles.length === 0) return;
 
+    const chartType = document.getElementById('chartType').value;
+    const isBase100 = chartType === 'base100';
     const container = document.getElementById('vehicleStatsContainer');
     container.innerHTML = '';
 
@@ -777,6 +802,25 @@ function updateComparisonStatistics() {
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
         const priceChange = ((currentPrice - firstPrice) / firstPrice) * 100;
+
+        // Calculate base 100 values if needed
+        let displayValues;
+        if (isBase100) {
+            const base100Values = convertToBase100(prices);
+            displayValues = {
+                current: base100Values[base100Values.length - 1],
+                min: Math.min(...base100Values),
+                max: Math.max(...base100Values),
+                format: (val) => val.toFixed(2)
+            };
+        } else {
+            displayValues = {
+                current: currentPrice,
+                min: minPrice,
+                max: maxPrice,
+                format: formatBRL
+            };
+        }
 
         // Create vehicle stats card
         const card = document.createElement('div');
@@ -791,16 +835,16 @@ function updateComparisonStatistics() {
             </div>
             <div class="vehicle-stats-grid">
                 <div class="vehicle-stat-item">
-                    <div class="vehicle-stat-label">Preço Atual</div>
-                    <div class="vehicle-stat-value">${formatBRL(currentPrice)}</div>
+                    <div class="vehicle-stat-label">${isBase100 ? 'Índice Atual' : 'Preço Atual'}</div>
+                    <div class="vehicle-stat-value">${displayValues.format(displayValues.current)}</div>
                 </div>
                 <div class="vehicle-stat-item">
-                    <div class="vehicle-stat-label">Preço Mínimo</div>
-                    <div class="vehicle-stat-value">${formatBRL(minPrice)}</div>
+                    <div class="vehicle-stat-label">${isBase100 ? 'Índice Mínimo' : 'Preço Mínimo'}</div>
+                    <div class="vehicle-stat-value">${displayValues.format(displayValues.min)}</div>
                 </div>
                 <div class="vehicle-stat-item">
-                    <div class="vehicle-stat-label">Preço Máximo</div>
-                    <div class="vehicle-stat-value">${formatBRL(maxPrice)}</div>
+                    <div class="vehicle-stat-label">${isBase100 ? 'Índice Máximo' : 'Preço Máximo'}</div>
+                    <div class="vehicle-stat-value">${displayValues.format(displayValues.max)}</div>
                 </div>
                 <div class="vehicle-stat-item">
                     <div class="vehicle-stat-label">Variação</div>
@@ -1015,7 +1059,15 @@ function initEventListeners() {
 
     // Update button click
     document.getElementById('updateChart').addEventListener('click', updateChart);
-    
+
+    // Chart type change - re-render chart with new type
+    document.getElementById('chartType').addEventListener('change', () => {
+        if (selectedVehicles.length > 0) {
+            renderComparisonChart();
+            updateComparisonStatistics();
+        }
+    });
+
     // Enter key in selects triggers update
     ['brandSelect', 'modelSelect', 'yearSelect', 'startMonth', 'endMonth'].forEach(id => {
         document.getElementById(id).addEventListener('keypress', (e) => {
