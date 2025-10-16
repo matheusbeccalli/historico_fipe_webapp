@@ -1,4 +1,6 @@
 # FIPE Price Tracker - Git Ignore File
+RESUME.md
+
 
 # Python
 __pycache__/
