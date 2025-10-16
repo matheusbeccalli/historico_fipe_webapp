@@ -282,7 +282,7 @@ Não hesite em explorar o código e fazer modificações!
 
 ## 📄 Licença
 
-Este projeto é livre para uso educacional e pessoal.
+Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICENSE) para mais detalhes.
 
 ## 🤝 Contribuindo
 
