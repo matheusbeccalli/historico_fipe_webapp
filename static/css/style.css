@@ -745,8 +745,9 @@ hr {
 
 .vehicle-chip {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
+    gap: 0.75rem;
     padding: 0.75rem 1rem;
     background: linear-gradient(135deg, var(--color-bg-primary) 0%, var(--color-bg-secondary) 100%);
     border: 2px solid var(--color-border-light);
@@ -774,16 +775,18 @@ hr {
 
 .vehicle-chip-info {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
     flex: 1;
+    min-width: 0;
 }
 
 .vehicle-chip-color {
     width: 8px;
-    height: 40px;
+    min-height: 40px;
     border-radius: 4px;
     flex-shrink: 0;
+    margin-top: 0.125rem;
 }
 
 .vehicle-chip-text {
@@ -796,17 +799,17 @@ hr {
     font-size: 0.875rem;
     color: var(--color-text-primary);
     margin-bottom: 0.25rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.3;
 }
 
 .vehicle-chip-details {
     font-size: 0.75rem;
     color: var(--color-text-muted);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    line-height: 1.3;
 }
 
 .vehicle-chip-remove {
@@ -823,6 +826,7 @@ hr {
     justify-content: center;
     transition: all var(--transition-fast);
     flex-shrink: 0;
+    margin-top: 0.25rem;
 }
 
 .vehicle-chip-remove:hover {

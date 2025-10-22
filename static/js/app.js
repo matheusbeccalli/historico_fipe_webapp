@@ -532,6 +532,7 @@ function renderChart(data) {
             },
             tickangle: -45,
             automargin: true,
+            nticks: 15,  // Limit number of tick marks to prevent overcrowding
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
@@ -710,6 +711,7 @@ function renderComparisonChart() {
             },
             tickangle: -45,
             automargin: true,
+            nticks: 15,  // Limit number of tick marks to prevent overcrowding
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
