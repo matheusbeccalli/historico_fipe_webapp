@@ -211,6 +211,116 @@ def get_years(model_id):
         db.close()
 
 
+@app.route('/api/vehicle-options/<int:brand_id>', methods=['GET'])
+@require_api_key
+def get_vehicle_options(brand_id):
+    """
+    Get all models and years for a brand with cross-filtering mappings.
+
+    This endpoint supports bidirectional filtering: users can select either
+    model or year first, and the other dropdown will filter accordingly.
+
+    Args:
+        brand_id: The ID of the brand (from URL)
+
+    Returns:
+        JSON object with:
+        {
+            "models": [{"id": 1, "name": "Gol"}, ...],
+            "year_descriptions": ["2024 Flex", "2023 Diesel", ...],
+            "model_to_years": {
+                "1": ["2024 Flex", "2023 Flex"],
+                "2": ["2024 Diesel"]
+            },
+            "year_to_models": {
+                "2024 Flex": [1, 3, 5],
+                "2023 Diesel": [2]
+            },
+            "model_year_lookup": {
+                "1": {"2024 Flex": 10, "2023 Flex": 11},
+                "2": {"2024 Diesel": 20}
+            }
+        }
+    """
+    db = get_db()
+    try:
+        # Get all models for this brand
+        models = (
+            db.query(CarModel)
+            .filter(CarModel.brand_id == brand_id)
+            .order_by(CarModel.model_name)
+            .all()
+        )
+
+        # Build models list
+        models_list = [
+            {"id": model.id, "name": model.model_name}
+            for model in models
+        ]
+
+        # Get all ModelYear records for this brand
+        model_years = (
+            db.query(ModelYear)
+            .join(ModelYear.car_model)
+            .filter(CarModel.brand_id == brand_id)
+            .order_by(ModelYear.year_description.desc())
+            .all()
+        )
+
+        # Build unique year descriptions
+        year_descriptions = sorted(
+            list(set(my.year_description for my in model_years)),
+            reverse=True  # Newest first
+        )
+
+        # Build model_to_years mapping: {model_id: [year_desc1, year_desc2]}
+        model_to_years = {}
+        for my in model_years:
+            model_id_str = str(my.car_model_id)
+            if model_id_str not in model_to_years:
+                model_to_years[model_id_str] = []
+            if my.year_description not in model_to_years[model_id_str]:
+                model_to_years[model_id_str].append(my.year_description)
+
+        # Sort year descriptions within each model (newest first)
+        for model_id_str in model_to_years:
+            model_to_years[model_id_str] = sorted(
+                model_to_years[model_id_str],
+                reverse=True
+            )
+
+        # Build year_to_models mapping: {year_desc: [model_id1, model_id2]}
+        year_to_models = {}
+        for my in model_years:
+            if my.year_description not in year_to_models:
+                year_to_models[my.year_description] = []
+            if my.car_model_id not in year_to_models[my.year_description]:
+                year_to_models[my.year_description].append(my.car_model_id)
+
+        # Sort model IDs within each year description
+        for year_desc in year_to_models:
+            year_to_models[year_desc] = sorted(year_to_models[year_desc])
+
+        # Build model_year_lookup: {model_id: {year_desc: year_id}}
+        model_year_lookup = {}
+        for my in model_years:
+            model_id_str = str(my.car_model_id)
+            if model_id_str not in model_year_lookup:
+                model_year_lookup[model_id_str] = {}
+            model_year_lookup[model_id_str][my.year_description] = my.id
+
+        return jsonify({
+            "models": models_list,
+            "year_descriptions": year_descriptions,
+            "model_to_years": model_to_years,
+            "year_to_models": year_to_models,
+            "model_year_lookup": model_year_lookup
+        })
+
+    finally:
+        db.close()
+
+
 @app.route('/api/months', methods=['GET'])
 @require_api_key
 def get_months():

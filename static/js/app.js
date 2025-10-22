@@ -11,6 +11,7 @@
 // Global variables to store state
 let availableMonths = [];
 let currentChartData = null;
+let vehicleOptions = null;  // Stores all models and years for bidirectional filtering
 
 // Multi-vehicle comparison state
 let selectedVehicles = [];
@@ -86,10 +87,26 @@ async function addVehicle() {
         return;
     }
 
-    const yearId = parseInt(yearSelect.value);
+    const modelId = modelSelect.value;
+    const yearDesc = yearSelect.value;
     const brandName = brandSelect.options[brandSelect.selectedIndex].text;
     const modelName = modelSelect.options[modelSelect.selectedIndex].text;
-    const yearDesc = yearSelect.options[yearSelect.selectedIndex].text;
+
+    // Look up the correct ModelYear ID from the mapping
+    let yearId;
+    if (vehicleOptions && vehicleOptions.model_year_lookup) {
+        const modelIdStr = String(modelId);
+        yearId = vehicleOptions.model_year_lookup[modelIdStr]?.[yearDesc];
+
+        if (!yearId) {
+            alert('Erro: combinação de modelo e ano inválida');
+            console.error('Could not find year_id for model:', modelId, 'year:', yearDesc);
+            return;
+        }
+    } else {
+        // Fallback for legacy mode (shouldn't happen in normal operation)
+        yearId = parseInt(yearSelect.value);
+    }
 
     // Check if already added
     if (selectedVehicles.some(v => v.id === yearId)) {
@@ -245,9 +262,126 @@ async function loadBrands() {
 }
 
 /**
- * Load models for a specific brand
+ * Load vehicle options for bidirectional filtering
+ * This fetches all models and years for a brand at once
+ */
+async function loadVehicleOptions(brandId) {
+    try {
+        const response = await fetch(`/api/vehicle-options/${brandId}`, {
+            headers: {
+                'X-API-Key': window.API_KEY
+            }
+        });
+        vehicleOptions = await response.json();
+
+        // Populate both dropdowns with all options
+        populateModelDropdown(vehicleOptions.models);
+        populateYearDropdown(vehicleOptions.year_descriptions);
+
+        // Enable both dropdowns (bidirectional selection)
+        document.getElementById('modelSelect').disabled = false;
+        document.getElementById('yearSelect').disabled = false;
+
+        return vehicleOptions;
+    } catch (error) {
+        console.error('Error loading vehicle options:', error);
+        showError('Erro ao carregar opções de veículos');
+    }
+}
+
+/**
+ * Populate the model dropdown with given models
+ */
+function populateModelDropdown(models, selectedModelId = null) {
+    const modelSelect = document.getElementById('modelSelect');
+    modelSelect.innerHTML = '<option value="">Selecione um modelo</option>';
+
+    models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model.id;
+        option.textContent = model.name;
+        modelSelect.appendChild(option);
+    });
+
+    if (selectedModelId) {
+        modelSelect.value = selectedModelId;
+    }
+}
+
+/**
+ * Populate the year dropdown with given year descriptions
+ */
+function populateYearDropdown(yearDescriptions, selectedYearDesc = null) {
+    const yearSelect = document.getElementById('yearSelect');
+    yearSelect.innerHTML = '<option value="">Selecione um ano/combustível</option>';
+
+    yearDescriptions.forEach(yearDesc => {
+        const option = document.createElement('option');
+        option.value = yearDesc;
+        option.textContent = yearDesc;
+        yearSelect.appendChild(option);
+    });
+
+    if (selectedYearDesc) {
+        yearSelect.value = selectedYearDesc;
+    }
+}
+
+/**
+ * Filter year dropdown based on selected model
+ */
+function filterYearsByModel(modelId) {
+    if (!vehicleOptions || !modelId) return;
+
+    const modelIdStr = String(modelId);
+    const availableYears = vehicleOptions.model_to_years[modelIdStr] || [];
+
+    // Get currently selected year
+    const yearSelect = document.getElementById('yearSelect');
+    const currentYearValue = yearSelect.value;
+
+    // Repopulate with filtered years
+    populateYearDropdown(availableYears);
+
+    // If previously selected year is still valid, keep it selected
+    if (currentYearValue && availableYears.includes(currentYearValue)) {
+        yearSelect.value = currentYearValue;
+    }
+}
+
+/**
+ * Filter model dropdown based on selected year
+ */
+function filterModelsByYear(yearDesc) {
+    if (!vehicleOptions || !yearDesc) return;
+
+    const availableModelIds = vehicleOptions.year_to_models[yearDesc] || [];
+
+    // Get currently selected model
+    const modelSelect = document.getElementById('modelSelect');
+    const currentModelId = parseInt(modelSelect.value);
+
+    // Build filtered models list
+    const filteredModels = vehicleOptions.models.filter(
+        model => availableModelIds.includes(model.id)
+    );
+
+    // Repopulate with filtered models
+    populateModelDropdown(filteredModels);
+
+    // If previously selected model is still valid, keep it selected
+    if (currentModelId && availableModelIds.includes(currentModelId)) {
+        modelSelect.value = currentModelId;
+    }
+}
+
+/**
+ * Legacy function - kept for backwards compatibility with default car loading
+ * Loads models for a specific brand (old API)
  */
 async function loadModels(brandId) {
+    // This function is deprecated in favor of loadVehicleOptions
+    // but kept for potential legacy code or default car loading
     try {
         const response = await fetch(`/api/models/${brandId}`, {
             headers: {
@@ -255,23 +389,23 @@ async function loadModels(brandId) {
             }
         });
         const models = await response.json();
-        
+
         const modelSelect = document.getElementById('modelSelect');
         modelSelect.innerHTML = '<option value="">Selecione um modelo</option>';
         modelSelect.disabled = false;
-        
+
         models.forEach(model => {
             const option = document.createElement('option');
             option.value = model.id;
             option.textContent = model.name;
             modelSelect.appendChild(option);
         });
-        
+
         // Reset year dropdown
         const yearSelect = document.getElementById('yearSelect');
-        yearSelect.innerHTML = '<option value="">Selecione um modelo</option>';
+        yearSelect.innerHTML = '<option value="">Selecione um ano/combustível</option>';
         yearSelect.disabled = true;
-        
+
         return models;
     } catch (error) {
         console.error('Error loading models:', error);
@@ -280,9 +414,12 @@ async function loadModels(brandId) {
 }
 
 /**
- * Load years for a specific model
+ * Legacy function - kept for backwards compatibility with default car loading
+ * Loads years for a specific model (old API)
  */
 async function loadYears(modelId) {
+    // This function is deprecated in favor of loadVehicleOptions
+    // but kept for potential legacy code or default car loading
     try {
         const response = await fetch(`/api/years/${modelId}`, {
             headers: {
@@ -290,18 +427,18 @@ async function loadYears(modelId) {
             }
         });
         const years = await response.json();
-        
+
         const yearSelect = document.getElementById('yearSelect');
         yearSelect.innerHTML = '<option value="">Selecione um ano</option>';
         yearSelect.disabled = false;
-        
+
         years.forEach(year => {
             const option = document.createElement('option');
             option.value = year.id;
             option.textContent = year.description;
             yearSelect.appendChild(option);
         });
-        
+
         return years;
     } catch (error) {
         console.error('Error loading years:', error);
@@ -1082,44 +1219,68 @@ async function initializeApp() {
  * Initialize event listeners
  */
 function initEventListeners() {
-    // Brand selection change
+    // Brand selection change - load all vehicle options for bidirectional filtering
     document.getElementById('brandSelect').addEventListener('change', async (e) => {
         const brandId = e.target.value;
         if (brandId) {
-            await loadModels(brandId);
+            // Load all models and years for this brand at once
+            await loadVehicleOptions(brandId);
+            updateButtonsState();
         } else {
-            // Reset model and year dropdowns
+            // Reset vehicle options and dropdowns
+            vehicleOptions = null;
             document.getElementById('modelSelect').innerHTML = '<option value="">Selecione uma marca</option>';
             document.getElementById('modelSelect').disabled = true;
             document.getElementById('yearSelect').innerHTML = '<option value="">Selecione um modelo</option>';
             document.getElementById('yearSelect').disabled = true;
+            updateButtonsState();
         }
     });
-    
-    // Model selection change
-    document.getElementById('modelSelect').addEventListener('change', async (e) => {
+
+    // Model selection change - filter years based on selected model
+    document.getElementById('modelSelect').addEventListener('change', (e) => {
         const modelId = e.target.value;
         if (modelId) {
-            await loadYears(modelId);
+            // Filter years to show only those available for this model
+            filterYearsByModel(modelId);
         } else {
-            // Reset year dropdown
-            document.getElementById('yearSelect').innerHTML = '<option value="">Selecione um modelo</option>';
-            document.getElementById('yearSelect').disabled = true;
+            // Model cleared - restore all years
+            if (vehicleOptions) {
+                populateYearDropdown(vehicleOptions.year_descriptions);
+            }
         }
+        updateButtonsState();
     });
-    
-    // Year selection change - enable add button
-    document.getElementById('yearSelect').addEventListener('change', async (e) => {
-        const yearId = e.target.value;
 
-        if (yearId) {
-            // Load months available for this specific vehicle
-            await loadMonths(parseInt(yearId));
-            updateButtonsState();
+    // Year selection change - filter models based on selected year
+    document.getElementById('yearSelect').addEventListener('change', async (e) => {
+        const yearDesc = e.target.value;
+        const modelSelect = document.getElementById('modelSelect');
+
+        if (yearDesc) {
+            // Filter models to show only those available for this year
+            filterModelsByYear(yearDesc);
+
+            // If both model and year are selected, load months for that specific vehicle
+            if (modelSelect.value) {
+                const modelId = modelSelect.value;
+                const modelIdStr = String(modelId);
+
+                // Look up the ModelYear ID
+                if (vehicleOptions && vehicleOptions.model_year_lookup) {
+                    const yearId = vehicleOptions.model_year_lookup[modelIdStr]?.[yearDesc];
+                    if (yearId) {
+                        await loadMonths(yearId);
+                    }
+                }
+            }
         } else {
-            // No year selected - disable add button
-            updateButtonsState();
+            // Year cleared - restore all models
+            if (vehicleOptions) {
+                populateModelDropdown(vehicleOptions.models);
+            }
         }
+        updateButtonsState();
     });
 
     // Add vehicle button click
