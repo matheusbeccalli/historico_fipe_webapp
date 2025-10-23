@@ -953,6 +953,158 @@ hr {
 }
 
 /* ========================================
+   Depreciation Section Styling
+   ======================================== */
+
+.depreciation-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px solid rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] .depreciation-section {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.depreciation-header {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--color-text-primary);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.depreciation-header i {
+    color: var(--color-accent);
+    font-size: 1.125rem;
+}
+
+.depreciation-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .depreciation-metrics-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.depreciation-metric-card {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light);
+    border-radius: var(--radius-sm);
+    padding: 0.875rem;
+    text-align: center;
+    transition: all var(--transition-base);
+}
+
+.depreciation-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-sm);
+    border-color: var(--color-border);
+}
+
+.depreciation-metric-label {
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.depreciation-metric-value {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.depreciation-metric-value.positive {
+    color: #10b981; /* Green for appreciation */
+}
+
+.depreciation-metric-value.negative {
+    color: #ef4444; /* Red for depreciation */
+}
+
+.depreciation-metric-detail {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+}
+
+.depreciation-real-comparison {
+    margin: 0.75rem 0;
+    padding: 0.5rem;
+    background: rgba(37, 99, 235, 0.05);
+    border-left: 3px solid var(--color-accent);
+    border-radius: 4px;
+}
+
+[data-theme="dark"] .depreciation-real-comparison {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.depreciation-yearly-breakdown {
+    margin-top: 1rem;
+}
+
+.depreciation-subheader {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.depreciation-subheader i {
+    font-size: 1rem;
+}
+
+.depreciation-yearly-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.depreciation-yearly-list li {
+    padding: 0.5rem;
+    margin-bottom: 0.375rem;
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.depreciation-yearly-list li strong {
+    min-width: 3rem;
+}
+
+.depreciation-rate {
+    font-weight: 600;
+    min-width: 4rem;
+}
+
+.depreciation-rate.positive {
+    color: #10b981;
+}
+
+.depreciation-rate.negative {
+    color: #ef4444;
+}
+
+/* ========================================
    21. Utility Classes
    ======================================== */
 .d-none {

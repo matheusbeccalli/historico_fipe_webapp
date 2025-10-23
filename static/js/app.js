@@ -62,6 +62,241 @@ function formatYearDescription(yearDesc) {
 }
 
 /**
+ * Calculate depreciation metrics for a vehicle
+ * @param {Array} priceData - Array of {date, price, label} objects
+ * @param {string} startDate - ISO date string (e.g., "2020-01-01")
+ * @param {string} endDate - ISO date string (e.g., "2024-12-01")
+ * @returns {Object} Depreciation metrics
+ */
+function calculateDepreciationMetrics(priceData, startDate, endDate) {
+    if (!priceData || priceData.length < 2) {
+        return null;
+    }
+
+    const prices = priceData.map(d => d.price);
+    const firstPrice = prices[0];
+    const lastPrice = prices[prices.length - 1];
+
+    // Calculate total depreciation
+    const totalDepreciation = ((lastPrice - firstPrice) / firstPrice) * 100;
+
+    // Calculate time elapsed
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const monthsElapsed = (end.getFullYear() - start.getFullYear()) * 12
+                         + (end.getMonth() - start.getMonth());
+    const yearsElapsed = monthsElapsed / 12;
+
+    // Calculate average annual depreciation
+    const annualDepreciation = yearsElapsed > 0
+        ? totalDepreciation / yearsElapsed
+        : totalDepreciation;
+
+    // Calculate monthly depreciation (last month vs previous month)
+    let monthlyDepreciation = 0;
+    if (prices.length >= 2) {
+        const lastMonth = prices[prices.length - 1];
+        const previousMonth = prices[prices.length - 2];
+        monthlyDepreciation = ((lastMonth - previousMonth) / previousMonth) * 100;
+    }
+
+    return {
+        total: totalDepreciation,
+        annual: annualDepreciation,
+        monthly: monthlyDepreciation,
+        monthsElapsed: monthsElapsed,
+        yearsElapsed: yearsElapsed,
+        firstPrice: firstPrice,
+        lastPrice: lastPrice
+    };
+}
+
+/**
+ * Calculate yearly depreciation breakdown
+ * @param {Array} priceData - Array of {date, price, label} objects
+ * @returns {Array} Array of {year, rate, startDate, endDate, startPrice, endPrice}
+ */
+function calculateYearlyBreakdown(priceData) {
+    if (!priceData || priceData.length < 2) {
+        return [];
+    }
+
+    // Group data points by calendar year
+    const yearGroups = {};
+    priceData.forEach(point => {
+        const year = new Date(point.date).getFullYear();
+        if (!yearGroups[year]) {
+            yearGroups[year] = [];
+        }
+        yearGroups[year].push(point);
+    });
+
+    // Calculate depreciation for each year
+    const breakdown = [];
+    Object.keys(yearGroups).sort().forEach(year => {
+        const yearData = yearGroups[year];
+        if (yearData.length < 2) return; // Skip years with insufficient data
+
+        const firstPoint = yearData[0];
+        const lastPoint = yearData[yearData.length - 1];
+        const rate = ((lastPoint.price - firstPoint.price) / firstPoint.price) * 100;
+
+        breakdown.push({
+            year: parseInt(year),
+            rate: rate,
+            startDate: firstPoint.date,
+            endDate: lastPoint.date,
+            startLabel: firstPoint.label,
+            endLabel: lastPoint.label,
+            startPrice: firstPoint.price,
+            endPrice: lastPoint.price
+        });
+    });
+
+    return breakdown;
+}
+
+/**
+ * Calculate real (inflation-adjusted) depreciation
+ * @param {number} nominalRate - Nominal depreciation rate (%)
+ * @param {number} ipcaRate - IPCA inflation rate (%)
+ * @returns {number} Real depreciation rate (%)
+ */
+function calculateRealDepreciation(nominalRate, ipcaRate) {
+    if (ipcaRate === null || ipcaRate === undefined) {
+        return null;
+    }
+    // Real rate = ((1 + nominal) / (1 + inflation)) - 1
+    const nominal = nominalRate / 100;
+    const ipca = ipcaRate / 100;
+    const real = ((1 + nominal) / (1 + ipca) - 1) * 100;
+    return real;
+}
+
+/**
+ * Format percentage in Brazilian style (comma as decimal separator)
+ * @param {number} value - Percentage value
+ * @param {number} decimals - Number of decimal places (default: 1)
+ * @returns {string} Formatted percentage (e.g., "-8,5%")
+ */
+function formatPercentageBrazilian(value, decimals = 1) {
+    if (value === null || value === undefined || isNaN(value)) {
+        return 'N/A';
+    }
+
+    const sign = value > 0 ? '+' : '';
+    const formatted = value.toFixed(decimals).replace('.', ',');
+    return `${sign}${formatted}%`;
+}
+
+/**
+ * Render depreciation section HTML
+ * @param {Object} vehicle - Vehicle object with data
+ * @param {Object} metrics - Depreciation metrics from calculateDepreciationMetrics
+ * @param {Object} indicators - Economic indicators {ipca, cdi}
+ * @param {Array} yearlyBreakdown - Yearly breakdown from calculateYearlyBreakdown
+ * @returns {string} HTML string for depreciation section
+ */
+function renderDepreciationSection(vehicle, metrics, indicators, yearlyBreakdown) {
+    if (!metrics) {
+        return `
+            <div class="depreciation-section">
+                <div class="depreciation-header">
+                    <i class="bi bi-graph-down"></i>
+                    Taxa de Depreciação
+                </div>
+                <p class="text-muted small">Dados insuficientes para calcular depreciação</p>
+            </div>
+        `;
+    }
+
+    // Calculate real depreciation if IPCA is available
+    let realDepreciationHtml = '';
+    if (indicators.ipca !== null) {
+        const realRate = calculateRealDepreciation(metrics.total, indicators.ipca);
+        const comparison = realRate < metrics.total ? 'melhor' : 'pior';
+        realDepreciationHtml = `
+            <div class="depreciation-real-comparison">
+                <span class="small text-muted">
+                    Real: ${formatPercentageBrazilian(realRate, 2)}
+                    (${comparison} que inflação)
+                </span>
+            </div>
+        `;
+    }
+
+    // Build yearly breakdown HTML
+    let yearlyHtml = '';
+    if (yearlyBreakdown.length > 0) {
+        yearlyHtml = `
+            <div class="depreciation-yearly-breakdown">
+                <div class="depreciation-subheader">
+                    <i class="bi bi-calendar3"></i>
+                    Detalhamento por Ano
+                </div>
+                <ul class="depreciation-yearly-list">
+                    ${yearlyBreakdown.map(year => `
+                        <li>
+                            <strong>${year.year}:</strong>
+                            <span class="depreciation-rate ${year.rate < 0 ? 'negative' : 'positive'}">
+                                ${formatPercentageBrazilian(year.rate, 1)}
+                            </span>
+                            <span class="small text-muted">
+                                (${year.startLabel} - ${year.endLabel})
+                            </span>
+                        </li>
+                    `).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    return `
+        <div class="depreciation-section">
+            <div class="depreciation-header">
+                <i class="bi bi-graph-down"></i>
+                Taxa de Depreciação
+            </div>
+
+            <div class="depreciation-metrics-grid">
+                <div class="depreciation-metric-card">
+                    <div class="depreciation-metric-label">Anual Média</div>
+                    <div class="depreciation-metric-value ${metrics.annual < 0 ? 'negative' : 'positive'}">
+                        ${formatPercentageBrazilian(metrics.annual, 1)}/ano
+                    </div>
+                    <div class="depreciation-metric-detail">
+                        ${Math.round(metrics.monthsElapsed)} meses
+                    </div>
+                </div>
+
+                <div class="depreciation-metric-card">
+                    <div class="depreciation-metric-label">Mensal</div>
+                    <div class="depreciation-metric-value ${metrics.monthly < 0 ? 'negative' : 'positive'}">
+                        ${formatPercentageBrazilian(metrics.monthly, 1)}/mês
+                    </div>
+                    <div class="depreciation-metric-detail">
+                        Último mês
+                    </div>
+                </div>
+
+                <div class="depreciation-metric-card">
+                    <div class="depreciation-metric-label">Total</div>
+                    <div class="depreciation-metric-value ${metrics.total < 0 ? 'negative' : 'positive'}">
+                        ${formatPercentageBrazilian(metrics.total, 1)}
+                    </div>
+                    <div class="depreciation-metric-detail">
+                        Todo período
+                    </div>
+                </div>
+            </div>
+
+            ${realDepreciationHtml}
+            ${yearlyHtml}
+        </div>
+    `;
+}
+
+/**
  * Get theme-aware colors for Plotly charts
  */
 function getChartColors() {
@@ -991,6 +1226,28 @@ function renderComparisonChart() {
 }
 
 /**
+ * Format a date range in Portuguese (short format)
+ * @param {string} startDate - ISO date string (e.g., "2020-01-01")
+ * @param {string} endDate - ISO date string (e.g., "2024-12-01")
+ * @returns {string} Formatted range (e.g., "jan/2020 - dez/2024")
+ */
+function formatDateRangeShort(startDate, endDate) {
+    if (!startDate || !endDate) return '';
+
+    const monthsShort = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const startMonth = monthsShort[start.getMonth()];
+    const startYear = start.getFullYear();
+    const endMonth = monthsShort[end.getMonth()];
+    const endYear = end.getFullYear();
+
+    return `${startMonth}/${startYear} - ${endMonth}/${endYear}`;
+}
+
+/**
  * Fetch economic indicators from API
  */
 async function fetchEconomicIndicators(startDate, endDate) {
@@ -1030,18 +1287,9 @@ async function updateComparisonStatistics() {
     const container = document.getElementById('vehicleStatsContainer');
     container.innerHTML = '';
 
-    // Fetch economic indicators using the SAME date range that was used to fetch the vehicle data
-    // This ensures statistics match what's displayed in the chart
-    const { startDate, endDate } = currentDateRange;
-
-    // Fallback to dropdown values if currentDateRange is not set (shouldn't happen in normal flow)
-    const actualStartDate = startDate || document.getElementById('startMonth').value;
-    const actualEndDate = endDate || document.getElementById('endMonth').value;
-
-    const indicators = await fetchEconomicIndicators(actualStartDate, actualEndDate);
-
-    selectedVehicles.forEach((vehicle, index) => {
-        if (!vehicle.data || vehicle.data.length === 0) return;
+    // Process each vehicle and fetch its specific economic indicators
+    for (const [index, vehicle] of selectedVehicles.entries()) {
+        if (!vehicle.data || vehicle.data.length === 0) continue;
 
         const prices = vehicle.data.map(d => d.price);
         const currentPrice = prices[prices.length - 1];
@@ -1049,6 +1297,26 @@ async function updateComparisonStatistics() {
         const minPrice = Math.min(...prices);
         const maxPrice = Math.max(...prices);
         const priceChange = ((currentPrice - firstPrice) / firstPrice) * 100;
+
+        // Get this vehicle's actual date range from its data
+        const vehicleStartDate = vehicle.data[0].date;
+        const vehicleEndDate = vehicle.data[vehicle.data.length - 1].date;
+
+        // Fetch economic indicators for THIS vehicle's specific date range
+        const indicators = await fetchEconomicIndicators(vehicleStartDate, vehicleEndDate);
+
+        // Format the period for display
+        const periodLabel = formatDateRangeShort(vehicleStartDate, vehicleEndDate);
+
+        // Calculate depreciation metrics
+        const depreciationMetrics = calculateDepreciationMetrics(
+            vehicle.data,
+            vehicleStartDate,
+            vehicleEndDate
+        );
+
+        // Calculate yearly breakdown
+        const yearlyBreakdown = calculateYearlyBreakdown(vehicle.data);
 
         // Calculate base 100 values if needed
         let displayValues;
@@ -1100,22 +1368,24 @@ async function updateComparisonStatistics() {
                     </div>
                 </div>
                 <div class="vehicle-stat-item">
-                    <div class="vehicle-stat-label">IPCA no Período</div>
+                    <div class="vehicle-stat-label">IPCA (${periodLabel})</div>
                     <div class="vehicle-stat-value ${indicators.ipca !== null ? 'neutral' : ''}">
                         ${indicators.ipca !== null ? (indicators.ipca > 0 ? '+' : '') + indicators.ipca.toFixed(2) + '%' : 'N/A'}
                     </div>
                 </div>
                 <div class="vehicle-stat-item">
-                    <div class="vehicle-stat-label">CDI no Período</div>
+                    <div class="vehicle-stat-label">CDI (${periodLabel})</div>
                     <div class="vehicle-stat-value ${indicators.cdi !== null ? 'neutral' : ''}">
                         ${indicators.cdi !== null ? (indicators.cdi > 0 ? '+' : '') + indicators.cdi.toFixed(2) + '%' : 'N/A'}
                     </div>
                 </div>
             </div>
+
+            ${renderDepreciationSection(vehicle, depreciationMetrics, indicators, yearlyBreakdown)}
         `;
 
         container.appendChild(card);
-    });
+    }
 }
 
 /**
