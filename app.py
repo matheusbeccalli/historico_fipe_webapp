@@ -27,7 +27,16 @@ from config import get_config
 
 # Initialize Flask app
 app = Flask(__name__)
-app.config.from_object(get_config())
+config_obj = get_config()
+app.config.from_object(config_obj)
+
+# Validate configuration
+from config import Config
+Config.validate_secret_key()  # Check SECRET_KEY strength
+
+# Validate production-specific configuration if in production mode
+if hasattr(config_obj, 'validate'):
+    config_obj.validate()
 
 # Create database engine and session factory
 engine = create_engine(app.config['DATABASE_URL'])
@@ -37,7 +46,26 @@ SessionLocal = sessionmaker(bind=engine)
 VALID_API_KEYS = set()
 api_keys_str = app.config.get('API_KEYS_ALLOWED', '')
 if api_keys_str:
-    VALID_API_KEYS = {key.strip() for key in api_keys_str.split(',') if key.strip()}
+    keys = [key.strip() for key in api_keys_str.split(',') if key.strip()]
+
+    # Validate all API keys meet minimum security requirements
+    for key in keys:
+        if len(key) < 16:
+            # Very weak key - log critical warning
+            app.logger.critical(
+                f'SECURITY: API key is dangerously short ({len(key)} chars). '
+                f'Keys should be at least 32 characters. '
+                f'Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+            )
+        elif len(key) < 32:
+            # Weak key - log warning
+            app.logger.warning(
+                f'API key is weak ({len(key)} chars). '
+                f'Recommended: 32+ characters. '
+                f'Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+            )
+
+    VALID_API_KEYS = set(keys)
 
 # Initialize rate limiter
 # Uses in-memory storage (no Redis required) - suitable for single-process deployments
@@ -100,6 +128,31 @@ def hash_api_key(api_key):
         str: First 16 characters of the SHA-256 hash
     """
     return hashlib.sha256(api_key.encode()).hexdigest()[:16]
+
+
+def sanitize_like_pattern(text):
+    """
+    Escape SQL LIKE wildcards to prevent pattern injection.
+
+    SQL LIKE operator treats % (matches any characters) and _ (matches single
+    character) as wildcards. User input containing these characters could be
+    used to enumerate database contents. This function escapes them to treat
+    them as literal characters.
+
+    Args:
+        text: The user input string to sanitize
+
+    Returns:
+        str: Sanitized string with LIKE wildcards escaped
+    """
+    if not text:
+        return text
+    # Escape backslash first (escape character itself)
+    text = text.replace('\\', '\\\\')
+    # Escape SQL LIKE wildcards
+    text = text.replace('%', '\\%')
+    text = text.replace('_', '\\_')
+    return text
 
 
 # ============================================================================
@@ -275,6 +328,17 @@ def require_api_key(f):
             return jsonify({
                 'error': 'Authentication required',
                 'message': 'Please authenticate via session or provide an API key in the X-API-Key header'
+            }), 401
+
+        # Reject suspiciously short API keys immediately
+        if len(api_key) < 16:
+            app.logger.warning(
+                f'Suspiciously short API key attempt ({len(api_key)} chars) '
+                f'from {request.remote_addr} accessing {request.path}'
+            )
+            return jsonify({
+                'error': 'Invalid API key',
+                'message': 'The provided API key is not valid'
             }), 401
 
         # Check if API key is valid
@@ -1066,8 +1130,8 @@ def get_price():
             .join(CarPrice.model_year)
             .join(CarPrice.reference_month)
             .filter(
-                Brand.brand_name.ilike(func.concat('%', brand_name, '%')),
-                CarModel.model_name.ilike(func.concat('%', model_name, '%')),
+                Brand.brand_name.ilike(func.concat('%', sanitize_like_pattern(brand_name), '%')),
+                CarModel.model_name.ilike(func.concat('%', sanitize_like_pattern(model_name), '%')),
                 ModelYear.year_description == year_desc,
                 ReferenceMonth.month_date == month_date
             )
@@ -1187,7 +1251,7 @@ def get_default_car():
             .join(CarPrice.reference_month)
             .filter(
                 CarModel.brand_id == brand.id,
-                CarModel.model_name.ilike(func.concat('%', default_model, '%')),
+                CarModel.model_name.ilike(func.concat('%', sanitize_like_pattern(default_model), '%')),
                 ReferenceMonth.month_date == latest_month
             )
             .distinct()
@@ -1361,12 +1425,28 @@ def internal_error(error):
 # ============================================================================
 
 if __name__ == '__main__':
-    # Run the Flask development server
-    # Debug mode respects the FLASK_ENV environment variable
-    # NEVER run with debug=True in production!
+    # Check if running in production mode
     is_production = os.getenv('FLASK_ENV') == 'production'
+
+    if is_production:
+        # CRITICAL SECURITY: Never run Flask dev server in production!
+        raise RuntimeError(
+            "\n\n"
+            "=" * 70 + "\n"
+            "CRITICAL ERROR: Cannot run Flask development server in production!\n"
+            "=" * 70 + "\n\n"
+            "The Flask development server is not designed for production use.\n"
+            "It lacks essential security features and performance optimizations.\n\n"
+            "Please use a production WSGI server like:\n"
+            "  - Gunicorn: gunicorn -w 4 app:app\n"
+            "  - Waitress: waitress-serve --port=8080 app:app\n\n"
+            "Deploy behind a reverse proxy (nginx/Apache) with HTTPS.\n"
+            "=" * 70 + "\n"
+        )
+
+    # Run the Flask development server (development only)
     app.run(
-        debug=not is_production,  # Automatically disabled in production
+        debug=True,  # Safe in development
         host='127.0.0.1',  # Only accessible from your computer
         port=5000
     )
