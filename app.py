@@ -10,6 +10,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError, DatabaseError
 from datetime import datetime, timedelta
 import json
 import os
@@ -774,11 +775,19 @@ def get_chart_data():
             "data": chart_data
         })
     
+    except ValueError as e:
+        # Client error - invalid input that passed initial validation
+        app.logger.warning(f"Invalid input in get_chart_data: {type(e).__name__}")
+        return jsonify({"error": "Invalid input parameters"}), 400
+    except (SQLAlchemyError, DatabaseError) as e:
+        # Database error - don't expose details to client
+        app.logger.error(f"Database error in get_chart_data: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "Database error occurred"}), 500
     except Exception as e:
-        # Log the error and return a user-friendly message
-        app.logger.error(f"Error in get_chart_data: {str(e)}")
-        return jsonify({"error": "An error occurred while fetching data"}), 500
-    
+        # Unexpected error - log but don't expose details
+        app.logger.error(f"Unexpected error in get_chart_data: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
     finally:
         db.close()
 
@@ -895,10 +904,18 @@ def compare_vehicles():
 
         return jsonify({"vehicles": vehicles_data})
 
+    except ValueError as e:
+        # Client error - invalid input that passed initial validation
+        app.logger.warning(f"Invalid input in compare_vehicles: {type(e).__name__}")
+        return jsonify({"error": "Invalid input parameters"}), 400
+    except (SQLAlchemyError, DatabaseError) as e:
+        # Database error - don't expose details to client
+        app.logger.error(f"Database error in compare_vehicles: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "Database error occurred"}), 500
     except Exception as e:
-        # Log the error and return a user-friendly message
-        app.logger.error(f"Error in compare_vehicles: {str(e)}")
-        return jsonify({"error": "An error occurred while fetching comparison data"}), 500
+        # Unexpected error - log but don't expose details
+        app.logger.error(f"Unexpected error in compare_vehicles: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
     finally:
         db.close()
@@ -1006,10 +1023,18 @@ def get_price():
             "fipe_code": result.fipe_code
         })
 
+    except ValueError as e:
+        # Client error - invalid input that passed initial validation
+        app.logger.warning(f"Invalid input in get_price: {type(e).__name__}")
+        return jsonify({"error": "Invalid input parameters"}), 400
+    except (SQLAlchemyError, DatabaseError) as e:
+        # Database error - don't expose details to client
+        app.logger.error(f"Database error in get_price: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "Database error occurred"}), 500
     except Exception as e:
-        # Log the error and return a user-friendly message
-        app.logger.error(f"Error in get_price: {str(e)}")
-        return jsonify({"error": "An error occurred while fetching price data"}), 500
+        # Unexpected error - log but don't expose details
+        app.logger.error(f"Unexpected error in get_price: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
     finally:
         db.close()
@@ -1223,10 +1248,18 @@ def get_economic_indicators():
             "cdi": round(cdi_accumulated, 2) if cdi_accumulated is not None else None
         })
 
+    except ValueError as e:
+        # Client error - invalid input that passed initial validation
+        app.logger.warning(f"Invalid input in get_economic_indicators: {type(e).__name__}")
+        return jsonify({"error": "Invalid input parameters"}), 400
+    except requests.RequestException as e:
+        # External API error - don't expose details to client
+        app.logger.error(f"External API error in get_economic_indicators: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "External service unavailable"}), 503
     except Exception as e:
-        # Log the error and return a user-friendly message
-        app.logger.error(f"Error in get_economic_indicators: {str(e)}")
-        return jsonify({"error": "An error occurred while fetching economic indicators"}), 500
+        # Unexpected error - log but don't expose details
+        app.logger.error(f"Unexpected error in get_economic_indicators: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
 
 
 # ============================================================================
@@ -1251,9 +1284,11 @@ def internal_error(error):
 
 if __name__ == '__main__':
     # Run the Flask development server
-    # Debug mode will auto-reload when you change code
+    # Debug mode respects the FLASK_ENV environment variable
+    # NEVER run with debug=True in production!
+    is_production = os.getenv('FLASK_ENV') == 'production'
     app.run(
-        debug=True,
+        debug=not is_production,  # Automatically disabled in production
         host='127.0.0.1',  # Only accessible from your computer
         port=5000
     )
