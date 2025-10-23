@@ -310,6 +310,49 @@ def ratelimit_handler(e):
 
 
 # ============================================================================
+# RESPONSE SECURITY HEADERS
+# ============================================================================
+
+@app.after_request
+def set_security_headers(response):
+    """
+    Add security headers to all responses.
+
+    These headers protect against common web vulnerabilities:
+    - X-Content-Type-Options: Prevents MIME sniffing
+    - X-Frame-Options: Prevents clickjacking
+    - X-XSS-Protection: Enables browser XSS filter
+    - Strict-Transport-Security: Enforces HTTPS (production only)
+    - Content-Security-Policy: Controls resource loading
+    """
+    # Prevent MIME type sniffing
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+
+    # Prevent clickjacking - don't allow embedding in iframes
+    response.headers['X-Frame-Options'] = 'DENY'
+
+    # Enable browser XSS protection
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+
+    # Enforce HTTPS in production (only if not in development)
+    if not app.config.get('DEBUG'):
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+
+    # Content Security Policy - controls what resources can be loaded
+    csp_directives = [
+        "default-src 'self'",
+        "script-src 'self' 'unsafe-inline' https://cdn.plot.ly https://cdn.jsdelivr.net",
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+        "img-src 'self' data:",
+        "connect-src 'self' https://api.bcb.gov.br"
+    ]
+    response.headers['Content-Security-Policy'] = '; '.join(csp_directives)
+
+    return response
+
+
+# ============================================================================
 # ROUTES - Web Pages
 # ============================================================================
 
