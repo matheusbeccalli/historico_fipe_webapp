@@ -277,6 +277,22 @@ def require_api_key(f):
 # ERROR HANDLERS
 # ============================================================================
 
+@app.errorhandler(413)
+def request_entity_too_large(e):
+    """
+    Custom handler for request too large errors (HTTP 413).
+
+    Triggered when a request body exceeds MAX_CONTENT_LENGTH.
+    Prevents memory exhaustion attacks from large payloads.
+    """
+    app.logger.warning(f'Request too large: {request.remote_addr} on {request.path}')
+    return jsonify({
+        'error': 'Request too large',
+        'message': 'Request body exceeds maximum allowed size (1MB)',
+        'max_size': '1MB'
+    }), 413
+
+
 @app.errorhandler(429)
 def ratelimit_handler(e):
     """

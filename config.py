@@ -29,6 +29,9 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)  # Session expires after 7 days
 
+    # Request size limits (prevent memory exhaustion attacks)
+    MAX_CONTENT_LENGTH = 1 * 1024 * 1024  # 1MB max request body size
+
     # Database configuration
     # By default, uses SQLite for development
     # Set DATABASE_URL environment variable to use PostgreSQL
