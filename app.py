@@ -291,12 +291,6 @@ def validate_date_range(start_date_str, end_date_str, allow_none=True):
         if start_date and end_date and start_date > end_date:
             return None, None, "start_date must be before or equal to end_date"
 
-        # Check range is not too large (max 10 years)
-        if start_date and end_date:
-            days_diff = (end_date - start_date).days
-            if days_diff > 3650:  # ~10 years
-                return None, None, "Date range cannot exceed 10 years"
-
     return start_date, end_date, None
 
 
