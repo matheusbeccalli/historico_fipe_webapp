@@ -646,13 +646,16 @@ function displayCarInfo(carInfo) {
  */
 function renderChart(data) {
     // Prepare data for Plotly
-    const dates = data.map(d => d.label);
+    // Use ISO date strings for x-axis to ensure chronological ordering
+    const dates = data.map(d => d.date);
+    const labels = data.map(d => d.label);
     const prices = data.map(d => d.price);
 
     // Create gradient for the area under the line
     const trace = {
         x: dates,
         y: prices,
+        customdata: labels,  // Store Portuguese labels for hover text
         type: 'scatter',
         mode: 'lines+markers',
         name: 'Preço',
@@ -672,7 +675,7 @@ function renderChart(data) {
         },
         fill: 'tozeroy',
         fillcolor: 'rgba(37, 99, 235, 0.08)',
-        hovertemplate: '<b>%{x}</b><br>' +
+        hovertemplate: '<b>%{customdata}</b><br>' +
                       'Preço: R$ %{y:,.2f}<br>' +
                       '<extra></extra>'
     };
@@ -706,6 +709,7 @@ function renderChart(data) {
                     color: colors.textcolor
                 }
             },
+            type: 'date',  // Treat x values as dates for proper chronological ordering
             tickangle: -45,
             automargin: true,
             nticks: 15,  // Limit number of tick marks to prevent overcrowding
@@ -818,26 +822,30 @@ function renderComparisonChart() {
     const traces = selectedVehicles.map((vehicle, index) => {
         if (!vehicle.data || vehicle.data.length === 0) return null;
 
-        const dates = vehicle.data.map(d => d.label);
+        // Use ISO date strings for x-axis to ensure chronological ordering
+        const dates = vehicle.data.map(d => d.date);
+        const labels = vehicle.data.map(d => d.label);
         const prices = vehicle.data.map(d => d.price);
 
         // Convert to base 100 if needed
         const yValues = isBase100 ? convertToBase100(prices) : prices;
 
         // Different hover templates based on chart type
+        // Use customdata to pass Portuguese labels to hover text
         const hovertemplate = isBase100
             ? '<b>%{fullData.name}</b><br>' +
-              '%{x}<br>' +
+              '%{customdata}<br>' +
               'Índice: %{y:.2f}<br>' +
               '<extra></extra>'
             : '<b>%{fullData.name}</b><br>' +
-              '%{x}<br>' +
+              '%{customdata}<br>' +
               'Preço: R$ %{y:,.2f}<br>' +
               '<extra></extra>';
 
         return {
             x: dates,
             y: yValues,
+            customdata: labels,  // Store Portuguese labels for hover text
             type: 'scatter',
             mode: 'lines+markers',
             name: `${vehicle.brand} ${vehicle.model}`,
@@ -888,6 +896,7 @@ function renderComparisonChart() {
                     color: colors.textcolor
                 }
             },
+            type: 'date',  // Treat x values as dates for proper chronological ordering
             tickangle: -45,
             automargin: true,
             nticks: 15,  // Limit number of tick marks to prevent overcrowding
@@ -1285,11 +1294,27 @@ function initEventListeners() {
     });
 
     // Model selection change - filter years based on selected model
-    document.getElementById('modelSelect').addEventListener('change', (e) => {
+    document.getElementById('modelSelect').addEventListener('change', async (e) => {
         const modelId = e.target.value;
+        const yearSelect = document.getElementById('yearSelect');
+
         if (modelId) {
             // Filter years to show only those available for this model
             filterYearsByModel(modelId);
+
+            // If both model and year are selected, load months for that specific vehicle
+            if (yearSelect.value) {
+                const yearDesc = yearSelect.value;
+                const modelIdStr = String(modelId);
+
+                // Look up the ModelYear ID
+                if (vehicleOptions && vehicleOptions.model_year_lookup) {
+                    const yearId = vehicleOptions.model_year_lookup[modelIdStr]?.[yearDesc];
+                    if (yearId) {
+                        await loadMonths(yearId);
+                    }
+                }
+            }
         } else {
             // Model cleared - restore all years
             if (vehicleOptions) {
