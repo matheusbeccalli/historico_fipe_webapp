@@ -6,6 +6,8 @@ It uses cascading dropdowns and Plotly charts for interactive visualization.
 """
 
 from flask import Flask, render_template, jsonify, request, session
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
@@ -34,6 +36,17 @@ VALID_API_KEYS = set()
 api_keys_str = app.config.get('API_KEYS_ALLOWED', '')
 if api_keys_str:
     VALID_API_KEYS = {key.strip() for key in api_keys_str.split(',') if key.strip()}
+
+# Initialize rate limiter
+# Uses in-memory storage (no Redis required) - suitable for single-process deployments
+# For multi-process production with gunicorn, consider using Redis: storage_uri="redis://localhost:6379"
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,  # Track requests by IP address
+    default_limits=["200 per day", "50 per hour"],  # Global fallback limits
+    storage_uri="memory://",  # In-memory storage (no external database needed)
+    strategy="fixed-window"  # Simple time window strategy
+)
 
 
 def get_db():
@@ -130,10 +143,31 @@ def require_api_key(f):
 
 
 # ============================================================================
+# ERROR HANDLERS
+# ============================================================================
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """
+    Custom handler for rate limit exceeded errors (HTTP 429).
+
+    Provides a user-friendly JSON response with information about the limit
+    and when the user can retry.
+    """
+    app.logger.warning(f'Rate limit exceeded: {request.remote_addr} on {request.path}')
+    return jsonify({
+        'error': 'Rate limit exceeded',
+        'message': f'Too many requests. Please slow down and try again later.',
+        'limit': e.description  # e.g., "1 per 1 minute"
+    }), 429
+
+
+# ============================================================================
 # ROUTES - Web Pages
 # ============================================================================
 
 @app.route('/')
+@limiter.exempt  # No rate limit for homepage - users need to load the page freely
 def index():
     """
     Main page route.
@@ -164,6 +198,7 @@ def index():
 
 @app.route('/api/brands', methods=['GET'])
 @require_api_key
+@limiter.limit("60 per minute")  # Generous limit for simple GET request
 def get_brands():
     """
     Get all available car brands that have models in the latest reference month.
@@ -214,6 +249,7 @@ def get_brands():
 
 @app.route('/api/models/<int:brand_id>', methods=['GET'])
 @require_api_key
+@limiter.limit("60 per minute")
 def get_models(brand_id):
     """
     Get all models for a specific brand that are available in the latest reference month.
@@ -264,6 +300,7 @@ def get_models(brand_id):
 
 @app.route('/api/years/<int:model_id>', methods=['GET'])
 @require_api_key
+@limiter.limit("60 per minute")
 def get_years(model_id):
     """
     Get all year/fuel combinations for a specific model that are available
@@ -314,6 +351,7 @@ def get_years(model_id):
 
 @app.route('/api/vehicle-options/<int:brand_id>', methods=['GET'])
 @require_api_key
+@limiter.limit("60 per minute")
 def get_vehicle_options(brand_id):
     """
     Get all models and years for a brand with cross-filtering mappings,
@@ -450,6 +488,7 @@ def get_vehicle_options(brand_id):
 
 @app.route('/api/months', methods=['GET'])
 @require_api_key
+@limiter.limit("60 per minute")
 def get_months():
     """
     Get all available reference months from the database.
@@ -503,6 +542,7 @@ def get_months():
 
 @app.route('/api/chart-data', methods=['POST'])
 @require_api_key
+@limiter.limit("30 per minute")  # Moderate limit for complex POST with database joins
 def get_chart_data():
     """
     Get price history data for a specific car within a date range.
@@ -615,6 +655,7 @@ def get_chart_data():
 
 @app.route('/api/compare-vehicles', methods=['POST'])
 @require_api_key
+@limiter.limit("10 per minute")  # Strict limit - very expensive query comparing multiple vehicles
 def compare_vehicles():
     """
     Get price history data for multiple vehicles for comparison.
@@ -739,6 +780,7 @@ def compare_vehicles():
 
 @app.route('/api/price', methods=['POST'])
 @require_api_key
+@limiter.limit("30 per minute")  # Moderate limit for database lookup
 def get_price():
     """
     Get price information for a specific car at a specific month.
@@ -849,6 +891,7 @@ def get_price():
 
 @app.route('/api/default-car', methods=['GET'])
 @require_api_key
+@limiter.limit("60 per minute")
 def get_default_car():
     """
     Get the default car to display when the page loads.
@@ -970,6 +1013,7 @@ def get_default_car():
 
 @app.route('/api/economic-indicators', methods=['POST'])
 @require_api_key
+@limiter.limit("20 per hour")  # Very strict hourly limit - makes external API calls
 def get_economic_indicators():
     """
     Get economic indicators (IPCA and CDI) from Banco Central do Brasil API
