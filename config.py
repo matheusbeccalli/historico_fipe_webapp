@@ -7,6 +7,7 @@ SQLite (for development) and PostgreSQL (for production).
 
 import os
 from pathlib import Path
+from datetime import timedelta
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -22,7 +23,12 @@ class Config:
     
     # Secret key for Flask sessions (change this in production!)
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
-    
+
+    # Session configuration
+    SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+    PERMANENT_SESSION_LIFETIME = timedelta(days=7)  # Session expires after 7 days
+
     # Database configuration
     # By default, uses SQLite for development
     # Set DATABASE_URL environment variable to use PostgreSQL
@@ -55,6 +61,7 @@ class DevelopmentConfig(Config):
 class ProductionConfig(Config):
     """Production configuration - optimized for performance"""
     DEBUG = False
+    SESSION_COOKIE_SECURE = True  # Only send session cookie over HTTPS in production
 
     # In production, you MUST set these environment variables in .env:
     # - SECRET_KEY: A strong random secret key

@@ -5,8 +5,8 @@ This webapp displays historical car price data from the FIPE database.
 It uses cascading dropdowns and Plotly charts for interactive visualization.
 """
 
-from flask import Flask, render_template, jsonify, request
-from sqlalchemy import create_engine
+from flask import Flask, render_template, jsonify, request, session
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import json
@@ -70,14 +70,22 @@ def get_latest_reference_month(db):
 
 def require_api_key(f):
     """
-    Decorator to require API key authentication.
+    Decorator to require authentication via session (for web browsers) or API key (for external clients).
 
-    Expects the API key to be provided in the X-API-Key header.
-    Returns 401 Unauthorized if the key is missing or invalid.
+    Authentication methods (checked in order):
+    1. Session-based auth (for web browsers) - checks for 'authenticated' in session
+    2. API key auth (for external clients) - checks X-API-Key header
+
+    Returns 401 Unauthorized if neither authentication method succeeds.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Get API key from header
+        # Check for session-based authentication first (web browsers)
+        if session.get('authenticated'):
+            app.logger.debug(f'Session access granted: endpoint={request.path} method={request.method} ip={request.remote_addr}')
+            return f(*args, **kwargs)
+
+        # Fall back to API key authentication (external clients)
         api_key = request.headers.get('X-API-Key')
 
         # If no API keys are configured, allow access (for development)
@@ -88,8 +96,8 @@ def require_api_key(f):
         # Check if API key is provided
         if not api_key:
             return jsonify({
-                'error': 'API key required',
-                'message': 'Please provide an API key in the X-API-Key header'
+                'error': 'Authentication required',
+                'message': 'Please authenticate via session or provide an API key in the X-API-Key header'
             }), 401
 
         # Check if API key is valid
@@ -118,14 +126,21 @@ def index():
 
     Renders the index.html template with the default car information.
     The template will then load the actual data via JavaScript API calls.
-    Note: This route does NOT require API key - it's the public-facing page.
-    The API key is injected into the template for the frontend to use.
+
+    This route establishes an authenticated session for the web browser,
+    eliminating the need to expose API keys in the HTML source code.
     """
+    # Create an authenticated session for web browser access
+    session['authenticated'] = True
+    session.permanent = True  # Use permanent session (configurable lifetime)
+
+    app.logger.info(f'New web session created from {request.remote_addr}')
+
     return render_template(
         'index.html',
         default_brand=app.config.get('DEFAULT_BRAND', 'Volkswagen'),
-        default_model=app.config.get('DEFAULT_MODEL', 'Gol'),
-        api_key=app.config.get('API_KEY', '')
+        default_model=app.config.get('DEFAULT_MODEL', 'Gol')
+        # API key is NO LONGER passed to the template
     )
 
 
@@ -774,8 +789,8 @@ def get_price():
             .join(CarPrice.model_year)
             .join(CarPrice.reference_month)
             .filter(
-                Brand.brand_name.ilike(f'%{brand_name}%'),
-                CarModel.model_name.ilike(f'%{model_name}%'),
+                Brand.brand_name.ilike(func.concat('%', brand_name, '%')),
+                CarModel.model_name.ilike(func.concat('%', model_name, '%')),
                 ModelYear.year_description == year_desc,
                 ReferenceMonth.month_date == month_date
             )
@@ -886,7 +901,7 @@ def get_default_car():
             .join(CarPrice.reference_month)
             .filter(
                 CarModel.brand_id == brand.id,
-                CarModel.model_name.ilike(f'%{default_model}%'),
+                CarModel.model_name.ilike(func.concat('%', default_model, '%')),
                 ReferenceMonth.month_date == latest_month
             )
             .distinct()
