@@ -12,6 +12,7 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, DatabaseError
 from datetime import datetime, timedelta
+import hashlib
 import json
 import os
 import requests
@@ -81,6 +82,24 @@ def get_latest_reference_month(db):
         .first()
     )
     return latest_month[0] if latest_month else None
+
+
+def hash_api_key(api_key):
+    """
+    Create a consistent hash for API key logging.
+
+    Instead of logging the first 8 characters of the API key (which could aid
+    brute force attacks), we hash the key and log the first 16 characters of
+    the hash. This provides a unique identifier for logging without exposing
+    any part of the actual key.
+
+    Args:
+        api_key: The API key string to hash
+
+    Returns:
+        str: First 16 characters of the SHA-256 hash
+    """
+    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
 
 
 # ============================================================================
@@ -267,7 +286,7 @@ def require_api_key(f):
             }), 401
 
         # API key is valid, log successful access and proceed with the request
-        app.logger.info(f'API access granted: key={api_key[:8]}... endpoint={request.path} method={request.method} ip={request.remote_addr}')
+        app.logger.info(f'API access granted: key_hash={hash_api_key(api_key)} endpoint={request.path} method={request.method} ip={request.remote_addr}')
         return f(*args, **kwargs)
 
     return decorated_function
