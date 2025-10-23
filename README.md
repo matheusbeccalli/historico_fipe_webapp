@@ -279,7 +279,6 @@ pip install -r requirements.txt
 ### 🎯 Prioridades (Quick Wins)
 - [ ] **Preços ajustados pela inflação** - Visualização de valores reais vs nominais usando IPCA
 - [ ] **Taxa de depreciação** - Mostrar % de desvalorização por ano/período
-- [ ] **Exportar para Excel/CSV** - Download de dados para análise offline
 - [ ] **Sugestões de veículos similares** - Ajudar a descobrir alternativas
 
 ### 📊 Análise de Dados & Insights

@@ -31,7 +31,7 @@ class Config:
 
     # Session configuration
     SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
-    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+    SESSION_COOKIE_SAMESITE = 'Strict'  # Maximum CSRF protection
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)  # Session expires after 7 days
 
     # Request size limits (prevent memory exhaustion attacks)
@@ -59,6 +59,11 @@ class Config:
     # Should include API_KEY plus any external client keys
     # Example: API_KEYS_ALLOWED=app-key-123,external-key-456,partner-key-789
     API_KEYS_ALLOWED = os.getenv('API_KEYS_ALLOWED', '')
+
+    # CSRF Protection
+    WTF_CSRF_ENABLED = True  # Enable CSRF protection for forms
+    WTF_CSRF_TIME_LIMIT = None  # CSRF tokens don't expire (valid for session lifetime)
+    WTF_CSRF_SSL_STRICT = False  # Allow development without HTTPS (set True in production if needed)
 
     @staticmethod
     def validate_secret_key():

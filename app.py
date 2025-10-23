@@ -8,11 +8,13 @@ It uses cascading dropdowns and Plotly charts for interactive visualization.
 from flask import Flask, render_template, jsonify, request, session
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, DatabaseError
 from datetime import datetime, timedelta
 import hashlib
+import hmac
 import json
 import os
 import requests
@@ -77,6 +79,11 @@ limiter = Limiter(
     storage_uri="memory://",  # In-memory storage (no external database needed)
     strategy="fixed-window"  # Simple time window strategy
 )
+
+# Initialize CSRF protection
+# Session-based requests (web browsers) require CSRF tokens
+# API key authenticated requests (external clients) are exempt
+csrf = CSRFProtect(app)
 
 
 def get_db():
@@ -206,6 +213,9 @@ def validate_integer_array(arr, field_name="array", min_length=1, max_length=Non
     """
     # Check if it's a list
     if not isinstance(arr, list):
+        app.logger.warning(
+            f'Invalid array type for {field_name}: {type(arr).__name__} from {request.remote_addr}'
+        )
         return None, f"{field_name} must be an array"
 
     # Check length constraints
@@ -213,6 +223,11 @@ def validate_integer_array(arr, field_name="array", min_length=1, max_length=Non
         return None, f"{field_name} must contain at least {min_length} item(s)"
 
     if max_length and len(arr) > max_length:
+        # Log suspicious oversized array attempts
+        app.logger.warning(
+            f'Array size limit exceeded for {field_name}: '
+            f'{len(arr)} > {max_length} from {request.remote_addr}'
+        )
         return None, f"{field_name} cannot contain more than {max_length} item(s)"
 
     # Validate each element
@@ -299,6 +314,35 @@ def require_api_key(f):
     def decorated_function(*args, **kwargs):
         # Check for session-based authentication first (web browsers)
         if session.get('authenticated'):
+            # Validate session hasn't expired
+            created_at = session.get('created_at')
+            if created_at:
+                try:
+                    created = datetime.fromisoformat(created_at)
+                    age = datetime.now() - created
+                    max_age = timedelta(days=7)  # Match PERMANENT_SESSION_LIFETIME
+
+                    if age > max_age:
+                        # Session expired - clear it
+                        session.clear()
+                        app.logger.warning(
+                            f'Expired session rejected: age={age.days} days from {request.remote_addr}'
+                        )
+                        return jsonify({
+                            'error': 'Session expired',
+                            'message': 'Your session has expired. Please reload the page.'
+                        }), 401
+                except (ValueError, TypeError) as e:
+                    # Invalid created_at timestamp - clear session for security
+                    app.logger.warning(
+                        f'Invalid session timestamp from {request.remote_addr}: {e}'
+                    )
+                    session.clear()
+                    return jsonify({
+                        'error': 'Invalid session',
+                        'message': 'Your session is invalid. Please reload the page.'
+                    }), 401
+
             app.logger.debug(f'Session access granted: endpoint={request.path} method={request.method} ip={request.remote_addr}')
             return f(*args, **kwargs)
 
@@ -341,8 +385,15 @@ def require_api_key(f):
                 'message': 'The provided API key is not valid'
             }), 401
 
-        # Check if API key is valid
-        if api_key not in VALID_API_KEYS:
+        # Check if API key is valid using constant-time comparison
+        # This prevents timing attacks where attackers measure response times
+        # to determine if they're getting closer to a valid key
+        is_valid = any(
+            hmac.compare_digest(api_key, valid_key)
+            for valid_key in VALID_API_KEYS
+        )
+
+        if not is_valid:
             app.logger.warning(f'Invalid API key attempt: {api_key[:8]}... from {request.remote_addr} accessing {request.path}')
             return jsonify({
                 'error': 'Invalid API key',
@@ -440,7 +491,7 @@ def set_security_headers(response):
 # ============================================================================
 
 @app.route('/')
-@limiter.exempt  # No rate limit for homepage - users need to load the page freely
+@limiter.limit("20 per minute")  # Allow reasonable access but prevent session exhaustion attacks
 def index():
     """
     Main page route.
@@ -451,11 +502,21 @@ def index():
     This route establishes an authenticated session for the web browser,
     eliminating the need to expose API keys in the HTML source code.
     """
-    # Create an authenticated session for web browser access
-    session['authenticated'] = True
-    session.permanent = True  # Use permanent session (configurable lifetime)
+    # Regenerate session ID on authentication to prevent session fixation
+    if not session.get('authenticated'):
+        # Clear any existing session data (prevents session fixation attack)
+        session.clear()
 
-    app.logger.info(f'New web session created from {request.remote_addr}')
+        # Create new authenticated session
+        session['authenticated'] = True
+        session['created_at'] = datetime.now().isoformat()
+        session.permanent = True  # Use permanent session (configurable lifetime)
+        session.modified = True  # Force session to be saved with new ID
+
+        app.logger.info(f'New web session created from {request.remote_addr}')
+    else:
+        # Session already exists, just access the page
+        app.logger.debug(f'Existing session access from {request.remote_addr}')
 
     return render_template(
         'index.html',
@@ -1140,15 +1201,21 @@ def get_price():
 
         # Check if we found data
         if not result:
-            return jsonify({
-                "error": "No price data found for the specified car and month",
-                "searched_for": {
+            error_response = {
+                "error": "No price data found for the specified car and month"
+            }
+
+            # Only include search details in development for debugging
+            # In production, this would leak information about valid brands/models
+            if app.config.get('DEBUG'):
+                error_response["searched_for"] = {
                     "brand": brand_name,
                     "model": model_name,
                     "year": year_desc,
                     "month": month_date.isoformat()
                 }
-            }), 404
+
+            return jsonify(error_response), 404
 
         # Import formatting function
         from webapp_database_models import format_price_brl

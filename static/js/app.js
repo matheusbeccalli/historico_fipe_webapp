@@ -28,6 +28,15 @@ const VEHICLE_COLORS = [
 ];
 
 /**
+ * Get CSRF token from meta tag for form submissions
+ * @returns {string} CSRF token
+ */
+function getCSRFToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.content : '';
+}
+
+/**
  * Format a number as Brazilian currency (R$ 1.234,56)
  */
 function formatBRL(value) {
@@ -552,7 +561,8 @@ async function updateComparisonChart() {
         const response = await fetch('/api/compare-vehicles', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
             },
             credentials: 'same-origin',
             body: JSON.stringify({
@@ -979,7 +989,8 @@ async function fetchEconomicIndicators(startDate, endDate) {
         const response = await fetch('/api/economic-indicators', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCSRFToken()
             },
             credentials: 'same-origin',
             body: JSON.stringify({

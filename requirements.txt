@@ -18,6 +18,9 @@ requests==2.31.0
 # Rate limiting for API protection
 Flask-Limiter==3.5.0
 
+# CSRF protection for forms
+Flask-WTF==1.2.1
+
 # For PostgreSQL support (optional, only needed in production)
 # Uncomment the line below if you plan to use PostgreSQL
 # psycopg2-binary==2.9.9
