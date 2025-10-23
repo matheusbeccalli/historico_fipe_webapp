@@ -50,6 +50,24 @@ def get_db():
         raise e
 
 
+def get_latest_reference_month(db):
+    """
+    Get the most recent reference month date from the database.
+
+    Args:
+        db: Database session
+
+    Returns:
+        datetime.date: The most recent month_date, or None if no data exists
+    """
+    latest_month = (
+        db.query(ReferenceMonth.month_date)
+        .order_by(ReferenceMonth.month_date.desc())
+        .first()
+    )
+    return latest_month[0] if latest_month else None
+
+
 def require_api_key(f):
     """
     Decorator to require API key authentication.
@@ -119,8 +137,11 @@ def index():
 @require_api_key
 def get_brands():
     """
-    Get all available car brands.
-    
+    Get all available car brands that have models in the latest reference month.
+
+    This ensures we only show brands that are currently available in FIPE's
+    most recent data, not historical brands that may have been discontinued.
+
     Returns:
         JSON array of brands: [
             {"id": 1, "name": "Volkswagen"},
@@ -130,17 +151,34 @@ def get_brands():
     """
     db = get_db()
     try:
-        # Query all brands, ordered alphabetically
-        brands = db.query(Brand).order_by(Brand.brand_name).all()
-        
+        # Get the most recent reference month
+        latest_month = get_latest_reference_month(db)
+
+        if not latest_month:
+            return jsonify([])
+
+        # Query brands that have at least one model with prices in the latest month
+        # Join through: brands → car_models → model_years → car_prices → reference_months
+        brands = (
+            db.query(Brand)
+            .join(Brand.models)
+            .join(CarModel.years)
+            .join(ModelYear.prices)
+            .join(CarPrice.reference_month)
+            .filter(ReferenceMonth.month_date == latest_month)
+            .distinct()
+            .order_by(Brand.brand_name)
+            .all()
+        )
+
         # Convert to list of dictionaries for JSON response
         brands_list = [
             {"id": brand.id, "name": brand.brand_name}
             for brand in brands
         ]
-        
+
         return jsonify(brands_list)
-    
+
     finally:
         db.close()
 
@@ -149,31 +187,48 @@ def get_brands():
 @require_api_key
 def get_models(brand_id):
     """
-    Get all models for a specific brand.
-    
+    Get all models for a specific brand that are available in the latest reference month.
+
+    This ensures we only show models that are currently available in FIPE's
+    most recent data for this brand.
+
     Args:
         brand_id: The ID of the brand (from URL)
-    
+
     Returns:
         JSON array of models for that brand
     """
     db = get_db()
     try:
-        # Query models for the specified brand, ordered alphabetically
+        # Get the most recent reference month
+        latest_month = get_latest_reference_month(db)
+
+        if not latest_month:
+            return jsonify([])
+
+        # Query models for this brand that have prices in the latest month
+        # Join through: car_models → model_years → car_prices → reference_months
         models = (
             db.query(CarModel)
-            .filter(CarModel.brand_id == brand_id)
+            .join(CarModel.years)
+            .join(ModelYear.prices)
+            .join(CarPrice.reference_month)
+            .filter(
+                CarModel.brand_id == brand_id,
+                ReferenceMonth.month_date == latest_month
+            )
+            .distinct()
             .order_by(CarModel.model_name)
             .all()
         )
-        
+
         models_list = [
             {"id": model.id, "name": model.model_name}
             for model in models
         ]
-        
+
         return jsonify(models_list)
-    
+
     finally:
         db.close()
 
@@ -182,31 +237,48 @@ def get_models(brand_id):
 @require_api_key
 def get_years(model_id):
     """
-    Get all year/fuel combinations for a specific model.
-    
+    Get all year/fuel combinations for a specific model that are available
+    in the latest reference month.
+
+    This ensures we only show years that are currently available in FIPE's
+    most recent data for this model.
+
     Args:
         model_id: The ID of the car model (from URL)
-    
+
     Returns:
         JSON array of years (e.g., "2024 Gasolina", "2023 Flex")
     """
     db = get_db()
     try:
-        # Query years for the specified model, ordered by description
+        # Get the most recent reference month
+        latest_month = get_latest_reference_month(db)
+
+        if not latest_month:
+            return jsonify([])
+
+        # Query years for this model that have prices in the latest month
+        # Join through: model_years → car_prices → reference_months
         years = (
             db.query(ModelYear)
-            .filter(ModelYear.car_model_id == model_id)
+            .join(ModelYear.prices)
+            .join(CarPrice.reference_month)
+            .filter(
+                ModelYear.car_model_id == model_id,
+                ReferenceMonth.month_date == latest_month
+            )
+            .distinct()
             .order_by(ModelYear.year_description.desc())  # Newest first
             .all()
         )
-        
+
         years_list = [
             {"id": year.id, "description": year.year_description}
             for year in years
         ]
-        
+
         return jsonify(years_list)
-    
+
     finally:
         db.close()
 
@@ -215,7 +287,8 @@ def get_years(model_id):
 @require_api_key
 def get_vehicle_options(brand_id):
     """
-    Get all models and years for a brand with cross-filtering mappings.
+    Get all models and years for a brand with cross-filtering mappings,
+    filtered to only show data available in the latest reference month.
 
     This endpoint supports bidirectional filtering: users can select either
     model or year first, and the other dropdown will filter accordingly.
@@ -244,10 +317,29 @@ def get_vehicle_options(brand_id):
     """
     db = get_db()
     try:
-        # Get all models for this brand
+        # Get the most recent reference month
+        latest_month = get_latest_reference_month(db)
+
+        if not latest_month:
+            return jsonify({
+                "models": [],
+                "year_descriptions": [],
+                "model_to_years": {},
+                "year_to_models": {},
+                "model_year_lookup": {}
+            })
+
+        # Get all models for this brand that have prices in the latest month
         models = (
             db.query(CarModel)
-            .filter(CarModel.brand_id == brand_id)
+            .join(CarModel.years)
+            .join(ModelYear.prices)
+            .join(CarPrice.reference_month)
+            .filter(
+                CarModel.brand_id == brand_id,
+                ReferenceMonth.month_date == latest_month
+            )
+            .distinct()
             .order_by(CarModel.model_name)
             .all()
         )
@@ -258,11 +350,17 @@ def get_vehicle_options(brand_id):
             for model in models
         ]
 
-        # Get all ModelYear records for this brand
+        # Get all ModelYear records for this brand that have prices in the latest month
         model_years = (
             db.query(ModelYear)
             .join(ModelYear.car_model)
-            .filter(CarModel.brand_id == brand_id)
+            .join(ModelYear.prices)
+            .join(CarPrice.reference_month)
+            .filter(
+                CarModel.brand_id == brand_id,
+                ReferenceMonth.month_date == latest_month
+            )
+            .distinct()
             .order_by(ModelYear.year_description.desc())
             .all()
         )
@@ -727,7 +825,8 @@ def get_default_car():
     Get the default car to display when the page loads.
 
     This finds a car based on the DEFAULT_BRAND and DEFAULT_MODEL
-    settings in config.py.
+    settings in config.py, filtered to only show vehicles available
+    in the latest reference month.
 
     Returns:
         JSON object with default selections:
@@ -739,54 +838,96 @@ def get_default_car():
     """
     db = get_db()
     try:
+        # Get the most recent reference month
+        latest_month = get_latest_reference_month(db)
+
+        if not latest_month:
+            return jsonify({"error": "No reference months found in database"}), 404
+
         default_brand = app.config.get('DEFAULT_BRAND', 'Volkswagen')
         default_model = app.config.get('DEFAULT_MODEL', 'Gol')
 
-        # Find the brand
+        # Find the brand that has data in the latest month
         brand = (
             db.query(Brand)
-            .filter(Brand.brand_name == default_brand)
+            .join(Brand.models)
+            .join(CarModel.years)
+            .join(ModelYear.prices)
+            .join(CarPrice.reference_month)
+            .filter(
+                Brand.brand_name == default_brand,
+                ReferenceMonth.month_date == latest_month
+            )
+            .distinct()
             .first()
         )
 
         if not brand:
-            # If default brand not found, just get the first brand
-            brand = db.query(Brand).order_by(Brand.brand_name).first()
+            # If default brand not found, get the first brand with data in latest month
+            brand = (
+                db.query(Brand)
+                .join(Brand.models)
+                .join(CarModel.years)
+                .join(ModelYear.prices)
+                .join(CarPrice.reference_month)
+                .filter(ReferenceMonth.month_date == latest_month)
+                .distinct()
+                .order_by(Brand.brand_name)
+                .first()
+            )
             if not brand:
-                return jsonify({"error": "No brands found in database"}), 404
+                return jsonify({"error": "No brands found in latest reference month"}), 404
 
-        # Find a model containing the default model name
+        # Find a model containing the default model name with data in latest month
         model = (
             db.query(CarModel)
+            .join(CarModel.years)
+            .join(ModelYear.prices)
+            .join(CarPrice.reference_month)
             .filter(
                 CarModel.brand_id == brand.id,
-                CarModel.model_name.ilike(f'%{default_model}%')
+                CarModel.model_name.ilike(f'%{default_model}%'),
+                ReferenceMonth.month_date == latest_month
             )
+            .distinct()
             .first()
         )
 
         if not model:
-            # If default model not found, get the first model for this brand
+            # If default model not found, get the first model for this brand with data
             model = (
                 db.query(CarModel)
-                .filter(CarModel.brand_id == brand.id)
+                .join(CarModel.years)
+                .join(ModelYear.prices)
+                .join(CarPrice.reference_month)
+                .filter(
+                    CarModel.brand_id == brand.id,
+                    ReferenceMonth.month_date == latest_month
+                )
+                .distinct()
                 .order_by(CarModel.model_name)
                 .first()
             )
 
         if not model:
-            return jsonify({"error": "No models found for default brand"}), 404
+            return jsonify({"error": "No models found for default brand in latest month"}), 404
 
-        # Find the most recent year for this model
+        # Find the most recent year for this model with data in latest month
         year = (
             db.query(ModelYear)
-            .filter(ModelYear.car_model_id == model.id)
+            .join(ModelYear.prices)
+            .join(CarPrice.reference_month)
+            .filter(
+                ModelYear.car_model_id == model.id,
+                ReferenceMonth.month_date == latest_month
+            )
+            .distinct()
             .order_by(ModelYear.year_description.desc())
             .first()
         )
 
         if not year:
-            return jsonify({"error": "No years found for default model"}), 404
+            return jsonify({"error": "No years found for default model in latest month"}), 404
 
         return jsonify({
             "brand_id": brand.id,
