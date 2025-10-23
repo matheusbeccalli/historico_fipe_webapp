@@ -37,6 +37,21 @@ function formatBRL(value) {
 }
 
 /**
+ * Format year description - convert 32000 to "Zero KM"
+ */
+function formatYearDescription(yearDesc) {
+    if (!yearDesc) return yearDesc;
+
+    // Check if year description starts with 32000
+    if (yearDesc.startsWith('32000')) {
+        // Replace 32000 with "Zero KM" while keeping the fuel type
+        return yearDesc.replace('32000', 'Zero KM');
+    }
+
+    return yearDesc;
+}
+
+/**
  * Get theme-aware colors for Plotly charts
  */
 function getChartColors() {
@@ -205,7 +220,7 @@ function updateVehiclesUI() {
                 <div class="vehicle-chip-color" style="background-color: ${vehicle.color}"></div>
                 <div class="vehicle-chip-text">
                     <div class="vehicle-chip-name">${vehicle.brand} ${vehicle.model}</div>
-                    <div class="vehicle-chip-details">${vehicle.year}</div>
+                    <div class="vehicle-chip-details">${formatYearDescription(vehicle.year)}</div>
                 </div>
             </div>
             <button class="vehicle-chip-remove" onclick="removeVehicle(${vehicle.id})" title="Remover">
@@ -335,7 +350,7 @@ function populateYearDropdown(yearDescriptions, selectedYearDesc = null) {
     yearDescriptions.forEach(yearDesc => {
         const option = document.createElement('option');
         option.value = yearDesc;
-        option.textContent = yearDesc;
+        option.textContent = formatYearDescription(yearDesc);
         yearSelect.appendChild(option);
     });
 
@@ -603,7 +618,7 @@ function displayComparisonInfo() {
 
     const count = selectedVehicles.length;
     titleSpan.textContent = `Comparando ${count} ${count === 1 ? 'veículo' : 'veículos'}`;
-    detailsP.textContent = selectedVehicles.map(v => `${v.brand} ${v.model} (${v.year})`).join(' • ');
+    detailsP.textContent = selectedVehicles.map(v => `${v.brand} ${v.model} (${formatYearDescription(v.year)})`).join(' • ');
 
     carInfoDiv.classList.remove('d-none');
 }
@@ -617,7 +632,7 @@ function displayCarInfo(carInfo) {
     const detailsP = document.getElementById('carInfoDetails');
 
     titleSpan.textContent = `${carInfo.brand} ${carInfo.model}`;
-    detailsP.textContent = `Ano/Combustível: ${carInfo.year}`;
+    detailsP.textContent = `Ano/Combustível: ${formatYearDescription(carInfo.year)}`;
 
     carInfoDiv.classList.remove('d-none');
 }
@@ -1044,7 +1059,7 @@ async function updateComparisonStatistics() {
         card.innerHTML = `
             <div class="vehicle-stats-header">
                 <div class="vehicle-stats-color-indicator" style="background-color: ${vehicle.color}"></div>
-                <h3 class="vehicle-stats-title">${vehicle.brand} ${vehicle.model} (${vehicle.year})</h3>
+                <h3 class="vehicle-stats-title">${vehicle.brand} ${vehicle.model} (${formatYearDescription(vehicle.year)})</h3>
             </div>
             <div class="vehicle-stats-grid">
                 <div class="vehicle-stat-item">
