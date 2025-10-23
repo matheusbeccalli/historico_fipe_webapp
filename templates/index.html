@@ -33,8 +33,8 @@
                 FIPE Histórico
             </span>
             <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
-                <i class="bi bi-moon-stars-fill"></i>
-                <span class="theme-toggle-text">Escuro</span>
+                <i class="bi bi-sun-fill"></i>
+                <span class="theme-toggle-text">Claro</span>
             </button>
         </div>
     </nav>
@@ -271,15 +271,15 @@
             function applyTheme(theme) {
                 html.setAttribute('data-theme', theme);
 
-                // Update toggle button
+                // Update toggle button to show current mode
                 if (theme === 'dark') {
-                    themeIcon.classList.remove('bi-moon-stars-fill');
-                    themeIcon.classList.add('bi-sun-fill');
-                    themeText.textContent = 'Claro';
-                } else {
                     themeIcon.classList.remove('bi-sun-fill');
                     themeIcon.classList.add('bi-moon-stars-fill');
                     themeText.textContent = 'Escuro';
+                } else {
+                    themeIcon.classList.remove('bi-moon-stars-fill');
+                    themeIcon.classList.add('bi-sun-fill');
+                    themeText.textContent = 'Claro';
                 }
 
                 // Update Plotly chart colors if chart exists
