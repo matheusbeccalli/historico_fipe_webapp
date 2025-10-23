@@ -16,6 +16,7 @@ let vehicleOptions = null;  // Stores all models and years for bidirectional fil
 // Multi-vehicle comparison state
 let selectedVehicles = [];
 const MAX_VEHICLES = 5;
+let currentDateRange = { startDate: null, endDate: null }; // Track the actual date range used for fetched data
 
 // Color palette for different vehicles
 const VEHICLE_COLORS = [
@@ -585,6 +586,9 @@ async function updateComparisonChart() {
             }
         });
 
+        // Store the actual date range used for this data fetch
+        currentDateRange = { startDate, endDate };
+
         // Display comparison info
         displayComparisonInfo();
 
@@ -1016,10 +1020,15 @@ async function updateComparisonStatistics() {
     const container = document.getElementById('vehicleStatsContainer');
     container.innerHTML = '';
 
-    // Fetch economic indicators
-    const startDate = document.getElementById('startMonth').value;
-    const endDate = document.getElementById('endMonth').value;
-    const indicators = await fetchEconomicIndicators(startDate, endDate);
+    // Fetch economic indicators using the SAME date range that was used to fetch the vehicle data
+    // This ensures statistics match what's displayed in the chart
+    const { startDate, endDate } = currentDateRange;
+
+    // Fallback to dropdown values if currentDateRange is not set (shouldn't happen in normal flow)
+    const actualStartDate = startDate || document.getElementById('startMonth').value;
+    const actualEndDate = endDate || document.getElementById('endMonth').value;
+
+    const indicators = await fetchEconomicIndicators(actualStartDate, actualEndDate);
 
     selectedVehicles.forEach((vehicle, index) => {
         if (!vehicle.data || vehicle.data.length === 0) return;
