@@ -10,6 +10,7 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import json
+import os
 import requests
 from functools import reduce, wraps
 
@@ -88,10 +89,23 @@ def require_api_key(f):
         # Fall back to API key authentication (external clients)
         api_key = request.headers.get('X-API-Key')
 
-        # If no API keys are configured, allow access (for development)
+        # If no API keys are configured, handle based on environment
         if not VALID_API_KEYS:
-            app.logger.warning('No API keys configured - allowing access without authentication')
-            return f(*args, **kwargs)
+            # STRICT MODE: Never allow access without keys in production
+            is_production = app.config.get('ENV') == 'production' or os.getenv('FLASK_ENV') == 'production'
+
+            if is_production:
+                app.logger.critical('SECURITY: No API keys configured in production! Denying access.')
+                return jsonify({
+                    'error': 'Service unavailable',
+                    'message': 'Authentication system not configured'
+                }), 503
+            else:
+                app.logger.warning(
+                    'DEVELOPMENT MODE: No API keys configured - allowing access. '
+                    'THIS MUST NOT HAPPEN IN PRODUCTION!'
+                )
+                return f(*args, **kwargs)
 
         # Check if API key is provided
         if not api_key:
