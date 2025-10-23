@@ -37,6 +37,23 @@ function formatBRL(value) {
 }
 
 /**
+ * Get theme-aware colors for Plotly charts
+ */
+function getChartColors() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+
+    return {
+        paper_bgcolor: isDark ? '#1e293b' : '#ffffff',
+        plot_bgcolor: isDark ? '#1e293b' : '#eff6ff',
+        gridcolor: isDark ? '#334155' : '#dbeafe',
+        linecolor: isDark ? '#475569' : '#93c5fd',
+        textcolor: isDark ? '#ffffff' : '#1e3a8a',
+        titlecolor: isDark ? '#ffffff' : '#111827',
+        hoverlabel_bgcolor: isDark ? '#0f172a' : '#111827'
+    };
+}
+
+/**
  * Show loading spinner and hide chart
  */
 function showLoading() {
@@ -641,6 +658,9 @@ function renderChart(data) {
                       '<extra></extra>'
     };
 
+    // Get theme-aware colors
+    const colors = getChartColors();
+
     // Premium layout configuration
     const layout = {
         autosize: true,
@@ -650,7 +670,7 @@ function renderChart(data) {
                 size: 24,
                 family: 'Inter, -apple-system, sans-serif',
                 weight: 700,
-                color: '#111827'
+                color: colors.titlecolor
             },
             pad: {
                 t: 10,
@@ -664,7 +684,7 @@ function renderChart(data) {
                     size: 14,
                     family: 'Inter, -apple-system, sans-serif',
                     weight: 600,
-                    color: '#1e3a8a'
+                    color: colors.textcolor
                 }
             },
             tickangle: -45,
@@ -673,12 +693,12 @@ function renderChart(data) {
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
-                color: '#1e3a8a'
+                color: colors.textcolor
             },
-            gridcolor: '#dbeafe',
+            gridcolor: colors.gridcolor,
             gridwidth: 1,
             showline: true,
-            linecolor: '#93c5fd',
+            linecolor: colors.linecolor,
             linewidth: 2
         },
         yaxis: {
@@ -688,7 +708,7 @@ function renderChart(data) {
                     size: 14,
                     family: 'Inter, -apple-system, sans-serif',
                     weight: 600,
-                    color: '#1e3a8a'
+                    color: colors.textcolor
                 }
             },
             tickformat: ',.0f',
@@ -696,18 +716,18 @@ function renderChart(data) {
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
-                color: '#1e3a8a'
+                color: colors.textcolor
             },
-            gridcolor: '#dbeafe',
+            gridcolor: colors.gridcolor,
             gridwidth: 1,
             showline: true,
-            linecolor: '#93c5fd',
+            linecolor: colors.linecolor,
             linewidth: 2,
             zeroline: false
         },
         hovermode: 'x unified',
-        plot_bgcolor: '#eff6ff',
-        paper_bgcolor: 'white',
+        plot_bgcolor: colors.plot_bgcolor,
+        paper_bgcolor: colors.paper_bgcolor,
         margin: {
             l: 80,
             r: 40,
@@ -715,7 +735,7 @@ function renderChart(data) {
             b: 120
         },
         hoverlabel: {
-            bgcolor: '#111827',
+            bgcolor: colors.hoverlabel_bgcolor,
             bordercolor: '#2563eb',
             font: {
                 size: 14,
@@ -820,6 +840,9 @@ function renderComparisonChart() {
         };
     }).filter(trace => trace !== null);
 
+    // Get theme-aware colors
+    const colors = getChartColors();
+
     // Premium layout configuration
     const layout = {
         autosize: true,
@@ -829,7 +852,7 @@ function renderComparisonChart() {
                 size: 24,
                 family: 'Inter, -apple-system, sans-serif',
                 weight: 700,
-                color: '#111827'
+                color: colors.titlecolor
             },
             pad: {
                 t: 10,
@@ -843,7 +866,7 @@ function renderComparisonChart() {
                     size: 14,
                     family: 'Inter, -apple-system, sans-serif',
                     weight: 600,
-                    color: '#1e3a8a'
+                    color: colors.textcolor
                 }
             },
             tickangle: -45,
@@ -852,12 +875,12 @@ function renderComparisonChart() {
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
-                color: '#1e3a8a'
+                color: colors.textcolor
             },
-            gridcolor: '#dbeafe',
+            gridcolor: colors.gridcolor,
             gridwidth: 1,
             showline: true,
-            linecolor: '#93c5fd',
+            linecolor: colors.linecolor,
             linewidth: 2
         },
         yaxis: {
@@ -867,7 +890,7 @@ function renderComparisonChart() {
                     size: 14,
                     family: 'Inter, -apple-system, sans-serif',
                     weight: 600,
-                    color: '#1e3a8a'
+                    color: colors.textcolor
                 }
             },
             tickformat: isBase100 ? ',.2f' : ',.0f',
@@ -875,18 +898,18 @@ function renderComparisonChart() {
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
-                color: '#1e3a8a'
+                color: colors.textcolor
             },
-            gridcolor: '#dbeafe',
+            gridcolor: colors.gridcolor,
             gridwidth: 1,
             showline: true,
-            linecolor: '#93c5fd',
+            linecolor: colors.linecolor,
             linewidth: 2,
             zeroline: false
         },
         hovermode: 'x unified',
-        plot_bgcolor: '#eff6ff',
-        paper_bgcolor: 'white',
+        plot_bgcolor: colors.plot_bgcolor,
+        paper_bgcolor: colors.paper_bgcolor,
         margin: {
             l: 80,
             r: 40,
@@ -894,7 +917,7 @@ function renderComparisonChart() {
             b: 120
         },
         hoverlabel: {
-            bgcolor: '#111827',
+            bgcolor: colors.hoverlabel_bgcolor,
             font: {
                 size: 14,
                 family: 'Inter, -apple-system, sans-serif',
@@ -909,7 +932,8 @@ function renderComparisonChart() {
             x: 0.5,
             font: {
                 size: 12,
-                family: 'Inter, -apple-system, sans-serif'
+                family: 'Inter, -apple-system, sans-serif',
+                color: colors.textcolor
             }
         }
     };

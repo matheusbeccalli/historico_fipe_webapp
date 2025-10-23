@@ -4,17 +4,42 @@ Uma aplicação web para visualizar o histórico de preços de veículos da Tabe
 
 > **⚠️ IMPORTANTE:** Este projeto é apenas a interface web (webapp) e **requer um banco de dados separado** com os dados históricos da Tabela FIPE. O banco de dados e os dados **NÃO estão incluídos** neste repositório. Você precisará de um scraper ou fonte de dados separada para popular o banco antes de usar esta aplicação.
 
+## ✨ Novidades Recentes
+
+### Versão Atual (Outubro 2025)
+
+**🌙 Modo Escuro Completo**
+- Toggle entre temas claro/escuro com um clique
+- Persistência de preferência no navegador (localStorage)
+- Detecção automática de preferência do sistema operacional
+- Gráficos Plotly adaptam cores automaticamente ao tema
+- Transições suaves entre temas
+
+**🔄 Filtragem Inteligente por Mês Mais Recente**
+- Dropdowns mostram apenas veículos disponíveis na Tabela FIPE mais atual
+- Elimina modelos descontinuados automaticamente
+- Exemplo: Porsche 2005 agora mostra 17 modelos (eram 20 com modelos descontinuados)
+- Garante que você veja apenas veículos com dados atuais
+
+**🔀 Filtragem Bidirecional Aprimorada**
+- Selecione modelo OU ano primeiro - o outro se ajusta automaticamente
+- Navegação mais intuitiva e flexível
+- Reduz cliques desnecessários
+
 ## 📋 Funcionalidades
 
 - ✅ Seleção de veículos com dropdowns em cascata (Marca → Modelo → Ano)
+- 🔄 **Filtragem inteligente** - Mostra apenas veículos disponíveis na Tabela FIPE mais recente
+- 🔀 **Filtragem bidirecional** - Selecione modelo ou ano primeiro, o outro se ajusta automaticamente
 - 📊 Gráfico interativo com Plotly mostrando evolução de preços
 - 🔄 Comparação de até 5 veículos no mesmo gráfico
 - 📅 Seleção de período (mês inicial e final)
 - 📈 Estatísticas automáticas por veículo (preço atual, mínimo, máximo, variação)
 - 💹 Indicadores econômicos (IPCA e CDI) para contexto
 - 📊 Visualização em preços absolutos ou indexada (Base 100)
+- 🌙 **Modo escuro/claro** - Toggle entre temas com persistência de preferência
 - 🔐 Autenticação com API keys para proteção dos endpoints
-- 🎨 Interface moderna com Bootstrap 5
+- 🎨 Interface moderna com Bootstrap 5 e design premium
 - 🔄 Atualizações dinâmicas sem recarregar a página
 - 💾 Suporte para SQLite (desenvolvimento) e PostgreSQL (produção)
 
@@ -183,15 +208,16 @@ DEFAULT_MODEL=Gol  # Busca modelos contendo "Gol"
 
 A aplicação expõe os seguintes endpoints JSON (requerem autenticação via header `X-API-Key`):
 
-- `GET /api/brands` - Lista todas as marcas
-- `GET /api/models/<brand_id>` - Lista modelos de uma marca
-- `GET /api/years/<model_id>` - Lista anos de um modelo
+- `GET /api/brands` - Lista marcas disponíveis na Tabela FIPE mais recente
+- `GET /api/models/<brand_id>` - Lista modelos de uma marca (filtrados pelo mês mais recente)
+- `GET /api/years/<model_id>` - Lista anos de um modelo (filtrados pelo mês mais recente)
+- `GET /api/vehicle-options/<brand_id>` - Retorna modelos e anos com mapeamento bidirecional
 - `GET /api/months` - Lista todos os meses disponíveis
 - `POST /api/chart-data` - Retorna dados para o gráfico (histórico completo)
 - `POST /api/compare-vehicles` - Retorna dados de múltiplos veículos para comparação
 - `POST /api/price` - Retorna preço de um veículo específico em um mês específico
 - `POST /api/economic-indicators` - Retorna indicadores econômicos (IPCA e CDI)
-- `GET /api/default-car` - Retorna o veículo padrão
+- `GET /api/default-car` - Retorna o veículo padrão (filtrado pelo mês mais recente)
 
 ### Autenticação
 
@@ -255,7 +281,6 @@ pip install -r requirements.txt
 - [ ] **Taxa de depreciação** - Mostrar % de desvalorização por ano/período
 - [ ] **Exportar para Excel/CSV** - Download de dados para análise offline
 - [ ] **Sugestões de veículos similares** - Ajudar a descobrir alternativas
-- [ ] **Modo escuro** - Tema dark para análises noturnas
 
 ### 📊 Análise de Dados & Insights
 - [ ] **Dashboard de tendências de mercado** - Quais marcas/segmentos estão valorizando

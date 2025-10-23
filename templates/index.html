@@ -32,6 +32,10 @@
                 <i class="bi bi-graph-up-arrow"></i>
                 FIPE Histórico
             </span>
+            <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
+                <i class="bi bi-moon-stars-fill"></i>
+                <span class="theme-toggle-text">Escuro</span>
+            </button>
         </div>
     </nav>
 
@@ -239,6 +243,103 @@
     <script>
         // API configuration
         window.API_KEY = "{{ api_key }}";
+    </script>
+
+    <!-- Dark Mode Toggle Script -->
+    <script>
+        // Dark mode functionality with localStorage persistence
+        (function() {
+            const themeToggle = document.getElementById('themeToggle');
+            const themeIcon = themeToggle.querySelector('i');
+            const themeText = themeToggle.querySelector('.theme-toggle-text');
+            const html = document.documentElement;
+
+            // Check for saved theme preference or default to system preference
+            function getInitialTheme() {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    return savedTheme;
+                }
+                // Check system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return 'dark';
+                }
+                return 'light';
+            }
+
+            // Apply theme to document
+            function applyTheme(theme) {
+                html.setAttribute('data-theme', theme);
+
+                // Update toggle button
+                if (theme === 'dark') {
+                    themeIcon.classList.remove('bi-moon-stars-fill');
+                    themeIcon.classList.add('bi-sun-fill');
+                    themeText.textContent = 'Claro';
+                } else {
+                    themeIcon.classList.remove('bi-sun-fill');
+                    themeIcon.classList.add('bi-moon-stars-fill');
+                    themeText.textContent = 'Escuro';
+                }
+
+                // Update Plotly chart colors if chart exists
+                updateChartTheme(theme);
+            }
+
+            // Update Plotly chart colors based on theme
+            function updateChartTheme(theme) {
+                const chartDiv = document.getElementById('priceChart');
+                if (chartDiv && chartDiv.data) {
+                    const isDark = theme === 'dark';
+                    const update = {
+                        paper_bgcolor: isDark ? '#1e293b' : '#ffffff',
+                        plot_bgcolor: isDark ? '#1e293b' : '#eff6ff',
+                        'xaxis.gridcolor': isDark ? '#334155' : '#dbeafe',
+                        'yaxis.gridcolor': isDark ? '#334155' : '#dbeafe',
+                        'xaxis.linecolor': isDark ? '#475569' : '#93c5fd',
+                        'yaxis.linecolor': isDark ? '#475569' : '#93c5fd',
+                        'xaxis.color': isDark ? '#ffffff' : '#1e3a8a',
+                        'yaxis.color': isDark ? '#ffffff' : '#1e3a8a',
+                        'xaxis.tickfont.color': isDark ? '#ffffff' : '#1e3a8a',
+                        'yaxis.tickfont.color': isDark ? '#ffffff' : '#1e3a8a',
+                        'xaxis.title.font.color': isDark ? '#ffffff' : '#1e3a8a',
+                        'yaxis.title.font.color': isDark ? '#ffffff' : '#1e3a8a',
+                        'title.font.color': isDark ? '#ffffff' : '#111827',
+                        'legend.font.color': isDark ? '#ffffff' : '#1e3a8a'
+                    };
+                    Plotly.relayout(chartDiv, update);
+                }
+            }
+
+            // Toggle theme
+            function toggleTheme() {
+                const currentTheme = html.getAttribute('data-theme') || 'light';
+                const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            }
+
+            // Initialize theme on page load
+            const initialTheme = getInitialTheme();
+            applyTheme(initialTheme);
+
+            // Add click event listener
+            themeToggle.addEventListener('click', toggleTheme);
+
+            // Listen for system theme changes
+            if (window.matchMedia) {
+                window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                    // Only update if user hasn't manually set a preference
+                    if (!localStorage.getItem('theme')) {
+                        applyTheme(e.matches ? 'dark' : 'light');
+                    }
+                });
+            }
+
+            // Expose updateChartTheme globally so app.js can use it
+            window.updateChartTheme = updateChartTheme;
+        })();
     </script>
 
     <!-- Custom JavaScript -->
