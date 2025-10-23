@@ -10,7 +10,7 @@ from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 import requests
@@ -80,6 +80,136 @@ def get_latest_reference_month(db):
         .first()
     )
     return latest_month[0] if latest_month else None
+
+
+# ============================================================================
+# INPUT VALIDATION HELPERS
+# ============================================================================
+
+def validate_positive_integer(value, field_name="value"):
+    """
+    Validate that a value is a positive integer.
+
+    Args:
+        value: The value to validate
+        field_name: Name of the field for error messages
+
+    Returns:
+        tuple: (validated_value, error_message)
+               If valid: (int, None)
+               If invalid: (None, str)
+    """
+    if value is None:
+        return None, f"{field_name} is required"
+
+    # Try to convert to integer
+    if not isinstance(value, int):
+        try:
+            value = int(value)
+        except (ValueError, TypeError):
+            return None, f"{field_name} must be an integer"
+
+    # Check if positive
+    if value <= 0:
+        return None, f"{field_name} must be a positive integer"
+
+    return value, None
+
+
+def validate_integer_array(arr, field_name="array", min_length=1, max_length=None):
+    """
+    Validate that an array contains only positive integers.
+
+    Args:
+        arr: The array to validate
+        field_name: Name of the field for error messages
+        min_length: Minimum array length (default: 1)
+        max_length: Maximum array length (default: None)
+
+    Returns:
+        tuple: (validated_array, error_message)
+               If valid: ([int, ...], None)
+               If invalid: (None, str)
+    """
+    # Check if it's a list
+    if not isinstance(arr, list):
+        return None, f"{field_name} must be an array"
+
+    # Check length constraints
+    if len(arr) < min_length:
+        return None, f"{field_name} must contain at least {min_length} item(s)"
+
+    if max_length and len(arr) > max_length:
+        return None, f"{field_name} cannot contain more than {max_length} item(s)"
+
+    # Validate each element
+    validated_ids = []
+    for i, item in enumerate(arr):
+        validated_id, error = validate_positive_integer(item, f"{field_name}[{i}]")
+        if error:
+            return None, error
+        validated_ids.append(validated_id)
+
+    return validated_ids, None
+
+
+def validate_date_range(start_date_str, end_date_str, allow_none=True):
+    """
+    Validate date strings and ensure reasonable range.
+
+    Args:
+        start_date_str: Start date string in ISO format (YYYY-MM-DD)
+        end_date_str: End date string in ISO format (YYYY-MM-DD)
+        allow_none: Whether to allow None values (default: True)
+
+    Returns:
+        tuple: (start_date, end_date, error_message)
+               If valid: (datetime, datetime, None)
+               If invalid: (None, None, str)
+    """
+    start_date = None
+    end_date = None
+
+    # Parse start date
+    if start_date_str:
+        try:
+            start_date = datetime.fromisoformat(start_date_str)
+        except (ValueError, TypeError):
+            return None, None, "start_date must be in ISO format (YYYY-MM-DD)"
+    elif not allow_none:
+        return None, None, "start_date is required"
+
+    # Parse end date
+    if end_date_str:
+        try:
+            end_date = datetime.fromisoformat(end_date_str)
+        except (ValueError, TypeError):
+            return None, None, "end_date must be in ISO format (YYYY-MM-DD)"
+    elif not allow_none:
+        return None, None, "end_date is required"
+
+    # Validate date ranges
+    if start_date or end_date:
+        min_allowed = datetime(2000, 1, 1)
+        max_allowed = datetime.now() + timedelta(days=365)
+
+        if start_date and start_date < min_allowed:
+            return None, None, "start_date cannot be before 2000-01-01"
+
+        if end_date and end_date > max_allowed:
+            return None, None, "end_date cannot be more than 1 year in the future"
+
+        # Check start is before end
+        if start_date and end_date and start_date > end_date:
+            return None, None, "start_date must be before or equal to end_date"
+
+        # Check range is not too large (max 10 years)
+        if start_date and end_date:
+            days_diff = (end_date - start_date).days
+            if days_diff > 3650:  # ~10 years
+                return None, None, "Date range cannot exceed 10 years"
+
+    return start_date, end_date, None
 
 
 def require_api_key(f):
@@ -573,19 +703,19 @@ def get_chart_data():
     try:
         # Get parameters from POST request body
         data = request.get_json()
-        year_id = data.get('year_id')
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
-        
-        # Validate required parameters
-        if not year_id:
-            return jsonify({"error": "year_id is required"}), 400
-        
-        # Convert date strings to datetime objects
-        if start_date:
-            start_date = datetime.fromisoformat(start_date)
-        if end_date:
-            end_date = datetime.fromisoformat(end_date)
+        year_id_raw = data.get('year_id')
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
+
+        # Validate year_id
+        year_id, error = validate_positive_integer(year_id_raw, 'year_id')
+        if error:
+            return jsonify({"error": error}), 400
+
+        # Validate date range
+        start_date, end_date, error = validate_date_range(start_date_str, end_date_str)
+        if error:
+            return jsonify({"error": error}), 400
         
         # Build the query
         # We join multiple tables to get all the information we need
@@ -689,23 +819,19 @@ def compare_vehicles():
     try:
         # Get parameters from POST request body
         data = request.get_json()
-        vehicle_ids = data.get('vehicle_ids', [])
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
+        vehicle_ids_raw = data.get('vehicle_ids', [])
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
 
-        # Validate required parameters
-        if not vehicle_ids or len(vehicle_ids) == 0:
-            return jsonify({"error": "vehicle_ids array is required and cannot be empty"}), 400
+        # Validate vehicle_ids array (min: 1, max: 5)
+        vehicle_ids, error = validate_integer_array(vehicle_ids_raw, 'vehicle_ids', min_length=1, max_length=5)
+        if error:
+            return jsonify({"error": error}), 400
 
-        # Limit to 5 vehicles for performance
-        if len(vehicle_ids) > 5:
-            return jsonify({"error": "Maximum 5 vehicles can be compared at once"}), 400
-
-        # Convert date strings to datetime objects
-        if start_date:
-            start_date = datetime.fromisoformat(start_date)
-        if end_date:
-            end_date = datetime.fromisoformat(end_date)
+        # Validate date range
+        start_date, end_date, error = validate_date_range(start_date_str, end_date_str)
+        if error:
+            return jsonify({"error": error}), 400
 
         vehicles_data = []
 
@@ -1035,19 +1161,13 @@ def get_economic_indicators():
     try:
         # Get parameters from POST request body
         data = request.get_json()
-        start_date = data.get('start_date')
-        end_date = data.get('end_date')
+        start_date_str = data.get('start_date')
+        end_date_str = data.get('end_date')
 
-        # Validate required parameters
-        if not start_date or not end_date:
-            return jsonify({"error": "start_date and end_date are required"}), 400
-
-        # Convert date strings to datetime objects
-        try:
-            start_dt = datetime.fromisoformat(start_date)
-            end_dt = datetime.fromisoformat(end_date)
-        except (ValueError, TypeError):
-            return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+        # Validate date range (both dates are required for this endpoint)
+        start_dt, end_dt, error = validate_date_range(start_date_str, end_date_str, allow_none=False)
+        if error:
+            return jsonify({"error": error}), 400
 
         # Format dates for BCB API (dd/MM/yyyy)
         start_date_bcb = start_dt.strftime('%d/%m/%Y')
