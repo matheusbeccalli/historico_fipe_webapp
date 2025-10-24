@@ -214,15 +214,10 @@ function renderDepreciationSection(vehicle, metrics, indicators, yearlyBreakdown
     let realDepreciationHtml = '';
     if (indicators.ipca !== null) {
         const realRate = calculateRealDepreciation(metrics.total, indicators.ipca);
-        // Compare real rate against IPCA rate
-        // If real rate > IPCA: vehicle outperformed inflation
-        // If real rate < IPCA: vehicle underperformed vs inflation
-        const comparison = realRate > indicators.ipca ? 'melhor' : 'pior';
         realDepreciationHtml = `
             <div class="depreciation-real-comparison">
                 <span class="small text-muted">
                     Real: ${formatPercentageBrazilian(realRate, 2)}
-                    (${comparison} que inflação)
                 </span>
             </div>
         `;
