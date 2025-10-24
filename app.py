@@ -18,7 +18,7 @@ import hmac
 import json
 import os
 import requests
-from functools import reduce, wraps
+from functools import reduce, wraps, lru_cache
 
 # Import our database models and config
 from webapp_database_models import (
@@ -1463,6 +1463,422 @@ def get_economic_indicators():
         # Unexpected error - log but don't expose details
         app.logger.error(f"Unexpected error in get_economic_indicators: {type(e).__name__}", exc_info=True)
         return jsonify({"error": "An unexpected error occurred"}), 500
+
+
+@app.route('/api/depreciation-analysis', methods=['GET'])
+@require_api_key
+@limiter.limit("10 per minute")  # Lower limit due to expensive calculations
+def get_depreciation_analysis():
+    """
+    Get market-wide depreciation analysis by brand, model, and year groups.
+
+    This endpoint calculates average annual depreciation rates across the entire
+    database to show which brands/models/years retain value best.
+
+    Query Parameters:
+        months (optional): Number of months to analyze (default: 12, max: 60)
+        brand_id (optional): If provided, returns model-level breakdown for that brand
+
+    Returns:
+        JSON object with depreciation analysis:
+        {
+            "calculated_at": "2024-01-15T10:30:00",
+            "analysis_period_months": 12,
+            "brands": [
+                {
+                    "brand_id": 1,
+                    "brand_name": "Toyota",
+                    "avg_depreciation_rate": -3.2,  # Annual rate as percentage
+                    "value_retention": 68.0,  # Percentage of original value retained
+                    "sample_size": 150  # Number of vehicle models analyzed
+                },
+                ...
+            ],
+            "year_groups": [
+                {
+                    "year_range": "2020-2024",
+                    "avg_depreciation_rate": -5.5,
+                    "value_retention": 72.0,
+                    "sample_size": 500
+                },
+                ...
+            ],
+            "models": [  # Only if brand_id provided
+                {
+                    "model_id": 10,
+                    "model_name": "Corolla",
+                    "avg_depreciation_rate": -2.8,
+                    "value_retention": 70.0,
+                    "sample_size": 5
+                },
+                ...
+            ]
+        }
+    """
+    db = get_db()
+    try:
+        # Get parameters
+        months = request.args.get('months', default=12, type=int)
+        brand_id_raw = request.args.get('brand_id', type=int)
+
+        # Validate months parameter
+        if months < 1 or months > 60:
+            return jsonify({"error": "months must be between 1 and 60"}), 400
+
+        # Validate brand_id if provided
+        brand_id = None
+        if brand_id_raw is not None:
+            brand_id, error = validate_positive_integer(brand_id_raw, 'brand_id')
+            if error:
+                return jsonify({"error": error}), 400
+
+        # Get latest reference month to determine analysis window
+        latest_month = get_latest_reference_month(db)
+        if not latest_month:
+            return jsonify({"error": "No reference months found in database"}), 404
+
+        # Calculate start date for analysis window
+        start_date = latest_month - timedelta(days=months * 30)
+
+        # Use cached calculation function
+        cache_key = f"{latest_month.isoformat()}_{months}_{brand_id or 'all'}"
+        result = _calculate_depreciation_analysis(cache_key, start_date, latest_month, brand_id)
+
+        return jsonify(result)
+
+    except ValueError as e:
+        app.logger.warning(f"Invalid input in get_depreciation_analysis: {type(e).__name__}")
+        return jsonify({"error": "Invalid input parameters"}), 400
+    except (SQLAlchemyError, DatabaseError) as e:
+        app.logger.error(f"Database error in get_depreciation_analysis: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "Database error occurred"}), 500
+    except Exception as e:
+        app.logger.error(f"Unexpected error in get_depreciation_analysis: {type(e).__name__}", exc_info=True)
+        return jsonify({"error": "An unexpected error occurred"}), 500
+
+    finally:
+        db.close()
+
+
+@lru_cache(maxsize=10)
+def _calculate_depreciation_analysis(cache_key, start_date, end_date, brand_id=None):
+    """
+    Calculate depreciation analysis with caching.
+
+    Cache key includes the date range and brand_id to auto-refresh when:
+    - New data is added to the database (latest_month changes)
+    - User requests different time period
+    - User requests different brand
+
+    Args:
+        cache_key: String combining latest_month, months, and brand_id
+        start_date: Start of analysis period
+        end_date: End of analysis period (latest month)
+        brand_id: Optional brand to analyze at model level
+
+    Returns:
+        Dict with depreciation analysis results
+    """
+    db = get_db()
+    try:
+        # Calculate brand-level depreciation
+        brands_analysis = _calculate_brand_depreciation(db, start_date, end_date)
+
+        # Calculate year group depreciation
+        year_groups_analysis = _calculate_year_group_depreciation(db, start_date, end_date)
+
+        # Calculate model-level depreciation if brand_id provided
+        models_analysis = None
+        if brand_id:
+            models_analysis = _calculate_model_depreciation(db, start_date, end_date, brand_id)
+
+        # Build response
+        result = {
+            "calculated_at": datetime.now().isoformat(),
+            "analysis_period": {
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "months": round((end_date - start_date).days / 30)
+            },
+            "brands": brands_analysis,
+            "year_groups": year_groups_analysis
+        }
+
+        if models_analysis is not None:
+            result["models"] = models_analysis
+
+        return result
+
+    finally:
+        db.close()
+
+
+def _calculate_brand_depreciation(db, start_date, end_date):
+    """
+    Calculate average depreciation rate by brand.
+
+    For each brand, we:
+    1. Find all models with price data in the analysis period
+    2. For each model, calculate depreciation from first to last price
+    3. Annualize the depreciation rate
+    4. Average across all models in the brand
+    """
+    from sqlalchemy import case, distinct
+
+    # Subquery to get first and last price for each ModelYear
+    first_price_sq = (
+        db.query(
+            CarPrice.model_year_id,
+            func.min(ReferenceMonth.month_date).label('first_date'),
+            func.max(ReferenceMonth.month_date).label('last_date')
+        )
+        .join(CarPrice.reference_month)
+        .filter(ReferenceMonth.month_date >= start_date)
+        .filter(ReferenceMonth.month_date <= end_date)
+        .group_by(CarPrice.model_year_id)
+        .having(func.min(ReferenceMonth.month_date) < func.max(ReferenceMonth.month_date))
+        .subquery()
+    )
+
+    # Get first prices
+    first_prices = (
+        db.query(
+            CarPrice.model_year_id,
+            CarPrice.price.label('first_price')
+        )
+        .join(CarPrice.reference_month)
+        .join(first_price_sq,
+              (CarPrice.model_year_id == first_price_sq.c.model_year_id) &
+              (ReferenceMonth.month_date == first_price_sq.c.first_date))
+        .subquery()
+    )
+
+    # Get last prices
+    last_prices = (
+        db.query(
+            CarPrice.model_year_id,
+            CarPrice.price.label('last_price')
+        )
+        .join(CarPrice.reference_month)
+        .join(first_price_sq,
+              (CarPrice.model_year_id == first_price_sq.c.model_year_id) &
+              (ReferenceMonth.month_date == first_price_sq.c.last_date))
+        .subquery()
+    )
+
+    # Calculate brand-level aggregations
+    query = (
+        db.query(
+            Brand.id.label('brand_id'),
+            Brand.brand_name,
+            func.count(distinct(CarModel.id)).label('sample_size'),
+            func.avg(
+                ((last_prices.c.last_price - first_prices.c.first_price) / first_prices.c.first_price) * 100 *
+                (365.25 / (func.julianday(first_price_sq.c.last_date) - func.julianday(first_price_sq.c.first_date)))
+            ).label('avg_annual_depreciation')
+        )
+        .join(CarModel.brand)
+        .join(CarModel.years)
+        .join(first_price_sq, ModelYear.id == first_price_sq.c.model_year_id)
+        .join(first_prices, ModelYear.id == first_prices.c.model_year_id)
+        .join(last_prices, ModelYear.id == last_prices.c.model_year_id)
+        .group_by(Brand.id, Brand.brand_name)
+        .having(func.count(distinct(CarModel.id)) >= 3)  # Only brands with 3+ models
+        .order_by(func.avg(
+            ((last_prices.c.last_price - first_prices.c.first_price) / first_prices.c.first_price) * 100 *
+            (365.25 / (func.julianday(first_price_sq.c.last_date) - func.julianday(first_price_sq.c.first_date)))
+        ).desc())
+    )
+
+    results = query.all()
+
+    return [
+        {
+            "brand_id": row.brand_id,
+            "brand_name": row.brand_name,
+            "avg_depreciation_rate": round(float(row.avg_annual_depreciation or 0), 2),
+            "value_retention": round(100 + float(row.avg_annual_depreciation or 0), 1),
+            "sample_size": row.sample_size
+        }
+        for row in results
+    ]
+
+
+def _calculate_year_group_depreciation(db, start_date, end_date):
+    """
+    Calculate average depreciation rate by year groups.
+
+    Groups vehicles by manufacture year ranges:
+    - 2020-2024 (0-5 years old)
+    - 2015-2019 (6-10 years old)
+    - 2010-2014 (11-15 years old)
+    - 2005-2009 (16-20 years old)
+    - <2005 (20+ years old)
+    """
+    from sqlalchemy import case, distinct, cast, Integer
+
+    # Extract year from year_description (format: "2024 Flex")
+    # Most year descriptions start with 4-digit year
+    current_year = datetime.now().year
+
+    # Subquery for first and last prices (same as brand calculation)
+    first_price_sq = (
+        db.query(
+            CarPrice.model_year_id,
+            func.min(ReferenceMonth.month_date).label('first_date'),
+            func.max(ReferenceMonth.month_date).label('last_date')
+        )
+        .join(CarPrice.reference_month)
+        .filter(ReferenceMonth.month_date >= start_date)
+        .filter(ReferenceMonth.month_date <= end_date)
+        .group_by(CarPrice.model_year_id)
+        .having(func.min(ReferenceMonth.month_date) < func.max(ReferenceMonth.month_date))
+        .subquery()
+    )
+
+    first_prices = (
+        db.query(
+            CarPrice.model_year_id,
+            CarPrice.price.label('first_price')
+        )
+        .join(CarPrice.reference_month)
+        .join(first_price_sq,
+              (CarPrice.model_year_id == first_price_sq.c.model_year_id) &
+              (ReferenceMonth.month_date == first_price_sq.c.first_date))
+        .subquery()
+    )
+
+    last_prices = (
+        db.query(
+            CarPrice.model_year_id,
+            CarPrice.price.label('last_price')
+        )
+        .join(CarPrice.reference_month)
+        .join(first_price_sq,
+              (CarPrice.model_year_id == first_price_sq.c.model_year_id) &
+              (ReferenceMonth.month_date == first_price_sq.c.last_date))
+        .subquery()
+    )
+
+    # Create year group categories
+    year_group = case(
+        (cast(func.substr(ModelYear.year_description, 1, 4), Integer) >= 2020, '2020-2024'),
+        (cast(func.substr(ModelYear.year_description, 1, 4), Integer) >= 2015, '2015-2019'),
+        (cast(func.substr(ModelYear.year_description, 1, 4), Integer) >= 2010, '2010-2014'),
+        (cast(func.substr(ModelYear.year_description, 1, 4), Integer) >= 2005, '2005-2009'),
+        else_='<2005'
+    )
+
+    query = (
+        db.query(
+            year_group.label('year_range'),
+            func.count(distinct(ModelYear.id)).label('sample_size'),
+            func.avg(
+                ((last_prices.c.last_price - first_prices.c.first_price) / first_prices.c.first_price) * 100 *
+                (365.25 / (func.julianday(first_price_sq.c.last_date) - func.julianday(first_price_sq.c.first_date)))
+            ).label('avg_annual_depreciation')
+        )
+        .join(first_price_sq, ModelYear.id == first_price_sq.c.model_year_id)
+        .join(first_prices, ModelYear.id == first_prices.c.model_year_id)
+        .join(last_prices, ModelYear.id == last_prices.c.model_year_id)
+        .group_by(year_group)
+        .order_by(year_group.desc())
+    )
+
+    results = query.all()
+
+    return [
+        {
+            "year_range": row.year_range,
+            "avg_depreciation_rate": round(float(row.avg_annual_depreciation or 0), 2),
+            "value_retention": round(100 + float(row.avg_annual_depreciation or 0), 1),
+            "sample_size": row.sample_size
+        }
+        for row in results
+    ]
+
+
+def _calculate_model_depreciation(db, start_date, end_date, brand_id):
+    """
+    Calculate average depreciation rate by model for a specific brand.
+
+    Similar to brand calculation but at model level.
+    """
+    from sqlalchemy import distinct
+
+    # Subquery for first and last prices
+    first_price_sq = (
+        db.query(
+            CarPrice.model_year_id,
+            func.min(ReferenceMonth.month_date).label('first_date'),
+            func.max(ReferenceMonth.month_date).label('last_date')
+        )
+        .join(CarPrice.reference_month)
+        .filter(ReferenceMonth.month_date >= start_date)
+        .filter(ReferenceMonth.month_date <= end_date)
+        .group_by(CarPrice.model_year_id)
+        .having(func.min(ReferenceMonth.month_date) < func.max(ReferenceMonth.month_date))
+        .subquery()
+    )
+
+    first_prices = (
+        db.query(
+            CarPrice.model_year_id,
+            CarPrice.price.label('first_price')
+        )
+        .join(CarPrice.reference_month)
+        .join(first_price_sq,
+              (CarPrice.model_year_id == first_price_sq.c.model_year_id) &
+              (ReferenceMonth.month_date == first_price_sq.c.first_date))
+        .subquery()
+    )
+
+    last_prices = (
+        db.query(
+            CarPrice.model_year_id,
+            CarPrice.price.label('last_price')
+        )
+        .join(CarPrice.reference_month)
+        .join(first_price_sq,
+              (CarPrice.model_year_id == first_price_sq.c.model_year_id) &
+              (ReferenceMonth.month_date == first_price_sq.c.last_date))
+        .subquery()
+    )
+
+    query = (
+        db.query(
+            CarModel.id.label('model_id'),
+            CarModel.model_name,
+            func.count(distinct(ModelYear.id)).label('sample_size'),
+            func.avg(
+                ((last_prices.c.last_price - first_prices.c.first_price) / first_prices.c.first_price) * 100 *
+                (365.25 / (func.julianday(first_price_sq.c.last_date) - func.julianday(first_price_sq.c.first_date)))
+            ).label('avg_annual_depreciation')
+        )
+        .join(CarModel.years)
+        .join(first_price_sq, ModelYear.id == first_price_sq.c.model_year_id)
+        .join(first_prices, ModelYear.id == first_prices.c.model_year_id)
+        .join(last_prices, ModelYear.id == last_prices.c.model_year_id)
+        .filter(CarModel.brand_id == brand_id)
+        .group_by(CarModel.id, CarModel.model_name)
+        .order_by(func.avg(
+            ((last_prices.c.last_price - first_prices.c.first_price) / first_prices.c.first_price) * 100 *
+            (365.25 / (func.julianday(first_price_sq.c.last_date) - func.julianday(first_price_sq.c.first_date)))
+        ).desc())
+    )
+
+    results = query.all()
+
+    return [
+        {
+            "model_id": row.model_id,
+            "model_name": row.model_name,
+            "avg_depreciation_rate": round(float(row.avg_annual_depreciation or 0), 2),
+            "value_retention": round(100 + float(row.avg_annual_depreciation or 0), 1),
+            "sample_size": row.sample_size
+        }
+        for row in results
+    ]
 
 
 # ============================================================================

@@ -1351,3 +1351,155 @@ footer,
                 color var(--transition-base),
                 border-color var(--transition-base);
 }
+
+/* ============================================================================
+   DEPRECIATION ANALYSIS STYLES
+   ============================================================================ */
+
+.depreciation-analysis-section {
+    background: var(--color-bg-primary);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    border: 1px solid var(--color-border);
+}
+
+.depreciation-analysis-section h4 {
+    color: var(--color-text-primary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.depreciation-table {
+    font-size: 0.9rem;
+}
+
+.depreciation-table thead th {
+    background: var(--color-bg-secondary);
+    color: var(--color-text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--color-border);
+    padding: 0.75rem;
+}
+
+.depreciation-table tbody tr {
+    transition: background var(--transition-base);
+}
+
+.depreciation-table tbody tr:hover {
+    background: var(--color-bg-hover);
+}
+
+.depreciation-table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+}
+
+/* Progress bars for value retention */
+.depreciation-table .progress {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+}
+
+.depreciation-table .progress-bar {
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: width 0.6s ease;
+}
+
+/* Badge styling */
+.depreciation-table .badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    font-weight: 600;
+}
+
+/* Info alert styling */
+.depreciation-analysis-section .alert-info {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.05) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    color: var(--color-text-primary);
+    font-size: 0.875rem;
+}
+
+.depreciation-analysis-section .alert-info strong {
+    color: var(--color-primary);
+}
+
+/* Sub-tabs (Por Marca, Por Ano) */
+#analysisTypeTabs .nav-link {
+    color: var(--color-text-secondary);
+    border: 1px solid transparent;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all var(--transition-base);
+}
+
+#analysisTypeTabs .nav-link:hover {
+    color: var(--color-text-primary);
+    background: var(--color-bg-hover);
+}
+
+#analysisTypeTabs .nav-link.active {
+    color: var(--color-primary);
+    background: var(--color-bg-secondary);
+    border-color: var(--color-border);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .depreciation-analysis-section {
+        padding: 1rem;
+    }
+
+    .depreciation-table {
+        font-size: 0.8rem;
+    }
+
+    .depreciation-table thead th,
+    .depreciation-table td {
+        padding: 0.5rem;
+    }
+
+    .depreciation-table .progress {
+        min-width: 40px !important;
+    }
+
+    #analysisTypeTabs .nav-link {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+/* Dark mode specific adjustments */
+[data-theme="dark"] .depreciation-analysis-section {
+    background: var(--color-bg-secondary);
+    border-color: var(--color-border);
+}
+
+[data-theme="dark"] .depreciation-table thead th {
+    background: rgba(15, 23, 42, 0.5);
+    border-color: var(--color-border);
+}
+
+[data-theme="dark"] .depreciation-table .progress {
+    background: rgba(15, 23, 42, 0.8);
+}
+
+[data-theme="dark"] .depreciation-analysis-section .alert-info {
+    background: rgba(59, 130, 246, 0.15);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Loading state */
+#depreciationAnalysis .spinner-border {
+    color: var(--color-primary);
+}
+
+#depreciationAnalysis .text-muted {
+    color: var(--color-text-secondary) !important;
+}
