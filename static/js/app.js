@@ -214,8 +214,9 @@ function renderDepreciationSection(vehicle, metrics, indicators, yearlyBreakdown
     let realDepreciationHtml = '';
     if (indicators.ipca !== null) {
         const realRate = calculateRealDepreciation(metrics.total, indicators.ipca);
-        // If real rate is less negative (or more positive) than nominal, vehicle performed better than inflation
-        const comparison = realRate > metrics.total ? 'melhor' : 'pior';
+        // If real rate > 0: vehicle gained purchasing power (beat inflation)
+        // If real rate < 0: vehicle lost purchasing power (worse than inflation)
+        const comparison = realRate > 0 ? 'melhor' : 'pior';
         realDepreciationHtml = `
             <div class="depreciation-real-comparison">
                 <span class="small text-muted">
