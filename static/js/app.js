@@ -1275,15 +1275,31 @@ async function fetchEconomicIndicators(startDate, endDate) {
 }
 
 /**
- * Update statistics for comparison view - creates individual cards for each vehicle
+ * Update statistics for comparison view with tabbed interface
  */
 async function updateComparisonStatistics() {
-    if (selectedVehicles.length === 0) return;
+    const statsTabsWrapper = document.getElementById('statsTabsWrapper');
+    const noVehiclesMessage = document.getElementById('noVehiclesMessage');
+
+    if (selectedVehicles.length === 0) {
+        // Show empty state, hide tabs
+        statsTabsWrapper.classList.add('d-none');
+        noVehiclesMessage.classList.remove('d-none');
+        return;
+    }
+
+    // Hide empty state, show tabs
+    noVehiclesMessage.classList.add('d-none');
+    statsTabsWrapper.classList.remove('d-none');
 
     const chartType = document.getElementById('chartType').value;
     const isBase100 = chartType === 'base100';
-    const container = document.getElementById('vehicleStatsContainer');
-    container.innerHTML = '';
+
+    // Clear both containers
+    const basicContainer = document.getElementById('basicStatsContainer');
+    const advancedContainer = document.getElementById('advancedStatsContainer');
+    basicContainer.innerHTML = '';
+    advancedContainer.innerHTML = '';
 
     // Process each vehicle and fetch its specific economic indicators
     for (const [index, vehicle] of selectedVehicles.entries()) {
@@ -1335,13 +1351,13 @@ async function updateComparisonStatistics() {
             };
         }
 
-        // Create vehicle stats card
-        const card = document.createElement('div');
-        card.className = 'vehicle-stats-card';
-        card.style.borderLeftColor = vehicle.color;
-        card.style.animationDelay = `${index * 0.1}s`;
+        // Create BASIC stats card for Tab 1 (Gráfico e Resumo)
+        const basicCard = document.createElement('div');
+        basicCard.className = 'vehicle-stats-card';
+        basicCard.style.borderLeftColor = vehicle.color;
+        basicCard.style.animationDelay = `${index * 0.1}s`;
 
-        card.innerHTML = `
+        basicCard.innerHTML = `
             <div class="vehicle-stats-header">
                 <div class="vehicle-stats-color-indicator" style="background-color: ${vehicle.color}"></div>
                 <h3 class="vehicle-stats-title">${vehicle.brand} ${vehicle.model} (${formatYearDescription(vehicle.year)})</h3>
@@ -1378,11 +1394,25 @@ async function updateComparisonStatistics() {
                     </div>
                 </div>
             </div>
+        `;
 
+        // Create ADVANCED stats card for Tab 2 (Análise Avançada)
+        const advancedCard = document.createElement('div');
+        advancedCard.className = 'vehicle-stats-card';
+        advancedCard.style.borderLeftColor = vehicle.color;
+        advancedCard.style.animationDelay = `${index * 0.1}s`;
+
+        advancedCard.innerHTML = `
+            <div class="vehicle-stats-header">
+                <div class="vehicle-stats-color-indicator" style="background-color: ${vehicle.color}"></div>
+                <h3 class="vehicle-stats-title">${vehicle.brand} ${vehicle.model} (${formatYearDescription(vehicle.year)})</h3>
+            </div>
             ${renderDepreciationSection(vehicle, depreciationMetrics, indicators, yearlyBreakdown)}
         `;
 
-        container.appendChild(card);
+        // Append cards to respective containers
+        basicContainer.appendChild(basicCard);
+        advancedContainer.appendChild(advancedCard);
     }
 }
 

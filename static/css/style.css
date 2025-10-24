@@ -1105,6 +1105,133 @@ hr {
 }
 
 /* ========================================
+   Statistics Tabs
+   ======================================== */
+
+.stats-tabs {
+    margin-bottom: 0;
+    border-bottom: 2px solid var(--color-border-light);
+    background: var(--color-bg-secondary);
+    padding: 0.5rem 0.5rem 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.stats-tabs .nav-link {
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    padding: 0.75rem 1.25rem;
+    font-weight: 600;
+    transition: all var(--transition-base);
+    margin-right: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+}
+
+.stats-tabs .nav-link i {
+    font-size: 1.125rem;
+}
+
+.stats-tabs .nav-link:hover {
+    background: rgba(255, 255, 255, 0.5);
+    border-color: var(--color-border-light);
+    color: var(--color-text-primary);
+}
+
+.stats-tabs .nav-link.active {
+    color: var(--color-accent);
+    background: var(--color-bg-primary);
+    border-color: var(--color-border-light);
+    border-bottom-color: var(--color-bg-primary);
+    position: relative;
+    z-index: 1;
+}
+
+.stats-tab-content {
+    background: var(--color-bg-primary);
+    padding: 1.5rem;
+    border: 1px solid var(--color-border-light);
+    border-top: none;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    min-height: 200px;
+}
+
+.stats-panel {
+    animation: fadeInTab 0.3s ease-out;
+}
+
+@keyframes fadeInTab {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dark mode adjustments for tabs */
+[data-theme="dark"] .stats-tabs {
+    background: var(--color-bg-secondary);
+    border-bottom-color: var(--color-border);
+}
+
+[data-theme="dark"] .stats-tabs .nav-link {
+    color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .stats-tabs .nav-link:hover {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .stats-tabs .nav-link.active {
+    background: var(--color-bg-primary);
+    border-color: var(--color-border);
+    border-bottom-color: var(--color-bg-primary);
+    color: var(--color-accent-light);
+}
+
+[data-theme="dark"] .stats-tab-content {
+    background: var(--color-bg-primary);
+    border-color: var(--color-border);
+}
+
+/* Empty state styling */
+#noVehiclesMessage {
+    animation: fadeIn 0.5s ease-out;
+}
+
+#noVehiclesMessage i {
+    color: var(--color-text-secondary);
+}
+
+/* Mobile responsiveness for tabs */
+@media (max-width: 576px) {
+    .stats-tabs {
+        padding: 0.25rem 0.25rem 0;
+    }
+
+    .stats-tabs .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+    }
+
+    .stats-tabs .nav-link i {
+        font-size: 1rem;
+    }
+
+    .stats-tab-content {
+        padding: 1rem;
+    }
+}
+
+/* ========================================
    21. Utility Classes
    ======================================== */
 .d-none {
