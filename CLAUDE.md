@@ -6,6 +6,185 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Flask web application that displays historical car price data from the Brazilian FIPE (Fundação Instituto de Pesquisas Econômicas) table. The application provides interactive visualizations of vehicle price trends over time using cascading dropdowns and Plotly charts.
 
+## Development Tools & Agents
+
+This project is equipped with specialized AI agents and the Serena MCP (Model Context Protocol) to enhance code navigation, analysis, and modification. **Always use these tools** - they are optimized for this codebase and will significantly improve your efficiency.
+
+### Serena MCP - Semantic Code Navigation
+
+**Serena provides symbol-based code navigation** instead of line-based file reading. This is the **preferred way** to explore and modify code in this project.
+
+**Key capabilities:**
+- **Symbol overview**: Get high-level view of classes/functions in a file without reading entire file
+- **Targeted symbol reading**: Read only specific functions/classes with `find_symbol`
+- **Reference tracking**: Find all places where a symbol is used with `find_referencing_symbols`
+- **Pattern search**: Search for code patterns with `search_for_pattern`
+- **Symbol-based editing**: Edit entire functions/classes with `replace_symbol_body`
+- **Insertion helpers**: Add code before/after symbols with `insert_before_symbol` and `insert_after_symbol`
+- **Memory system**: Project knowledge stored in memory files for context
+
+**When to use Serena MCP:**
+- ✅ **ALWAYS** use `get_symbols_overview` before reading full files
+- ✅ Exploring unfamiliar parts of the codebase
+- ✅ Finding where a function/class is used
+- ✅ Searching for patterns across multiple files
+- ✅ Editing entire functions or classes
+- ✅ Understanding code structure without loading entire files
+
+**Example workflow:**
+```python
+# 1. Get overview of file first
+get_symbols_overview("app.py")
+
+# 2. Read specific symbol with body
+find_symbol(name_path="get_brands", relative_path="app.py", include_body=True)
+
+# 3. Find where it's referenced
+find_referencing_symbols(name_path="get_brands", relative_path="app.py")
+
+# 4. Edit the symbol
+replace_symbol_body(
+    name_path="get_brands",
+    relative_path="app.py",
+    body="new function implementation"
+)
+```
+
+**Serena Memory Files:**
+Serena maintains project knowledge in memory files:
+- `project_overview.md` - Project purpose, tech stack, architecture
+- `codebase_structure.md` - File organization and responsibilities
+- `code_style_conventions.md` - Coding standards and patterns
+- `architecture_patterns.md` - Database patterns, API design, security
+- `suggested_commands.md` - Development commands for Windows
+- `task_completion_checklist.md` - Quality checks and workflow
+
+**Read these memories when:**
+- Starting work on the project for the first time
+- Implementing new features
+- Unsure about coding conventions
+- Need to understand architectural patterns
+
+### Specialized AI Agents
+
+This project includes **4 specialized agents** in `.claude/agents/` that should be used proactively:
+
+#### 1. 🔍 code-reviewer
+**When to use:** After writing or modifying code (new features, bug fixes, refactoring)
+
+**Capabilities:**
+- Security vulnerability detection (SQL injection, XSS, authentication bypasses)
+- Performance analysis (N+1 queries, inefficiencies)
+- Code quality review (maintainability, best practices)
+- Project-specific pattern validation (checks against CLAUDE.md)
+- Prioritized feedback (Critical → High → Medium → Low)
+
+**Use proactively after:**
+- Adding new API endpoints
+- Modifying database queries
+- Implementing new features
+- Refactoring existing code
+
+**Example:**
+```
+User: "I've added a new /api/vehicle-details endpoint"
+Assistant: "Let me use the code-reviewer agent to ensure it follows best practices and security standards."
+```
+
+#### 2. 📊 data-analyst-sql
+**When to use:** For data analysis, SQL queries, insights, or query optimization
+
+**Capabilities:**
+- Writing efficient SQLAlchemy ORM queries
+- Analyzing price trends and patterns
+- Query optimization and performance tuning
+- Statistical analysis and insights
+- Database exploration and relationship analysis
+
+**Use for:**
+- Analyzing FIPE price trends
+- Optimizing slow queries
+- Exploring data patterns
+- Generating reports or insights
+- Understanding data relationships
+
+**Example:**
+```
+User: "Which brands have the most stable prices?"
+Assistant: "I'll use the data-analyst-sql agent to analyze price volatility across brands."
+```
+
+#### 3. 🐛 debug-specialist
+**When to use:** For errors, exceptions, test failures, or unexpected behavior
+
+**Capabilities:**
+- Systematic root cause analysis
+- Stack trace interpretation
+- Strategic debug logging insertion
+- Minimal fix implementation
+- Verification and prevention recommendations
+
+**Use when encountering:**
+- 500 errors or API failures
+- Unexpected behavior (wrong data, incorrect charts)
+- Application crashes or exceptions
+- Database connection issues
+- Test failures
+
+**Example:**
+```
+User: "Getting a 500 error on /api/chart-data"
+Assistant: "Let me use the debug-specialist agent to investigate this error."
+```
+
+#### 4. 🎯 feature-implementation-planner
+**When to use:** Planning implementation of features from "Melhorias Futuras" in README.md
+
+**Capabilities:**
+- Deep feature analysis and requirements breakdown
+- Phased implementation strategy (Database → Backend → Frontend → Testing)
+- Architecture-aware planning (respects existing patterns)
+- Risk assessment and dependency mapping
+- Code-level guidance with exact file locations
+
+**Use for:**
+- Planning new features from the roadmap
+- Breaking down complex features into steps
+- Understanding dependencies between features
+- Creating implementation checklists
+
+**Example:**
+```
+User: "Let's implement the vehicle comparison feature"
+Assistant: "I'll use the feature-implementation-planner agent to create a detailed plan."
+```
+
+### Best Practices for Tool Usage
+
+**Priority order for code exploration:**
+1. **First**: Use Serena's `get_symbols_overview` to understand file structure
+2. **Second**: Use Serena's `find_symbol` to read specific functions/classes
+3. **Last resort**: Read entire files only when necessary
+
+**When implementing features:**
+1. Use `feature-implementation-planner` agent to create detailed plan
+2. Use Serena MCP for symbol-based code navigation and editing
+3. Use `code-reviewer` agent after completing implementation
+4. Use `debug-specialist` agent if encountering issues
+
+**When analyzing data or queries:**
+1. Use `data-analyst-sql` agent for insights and optimization
+2. Use Serena's `find_symbol` to understand existing query patterns
+3. Use `code-reviewer` agent to validate query security and performance
+
+**General workflow:**
+1. **Plan** → Use feature-implementation-planner for new features
+2. **Navigate** → Use Serena MCP for code exploration
+3. **Implement** → Use Serena's symbol editing for changes
+4. **Review** → Use code-reviewer agent for quality assurance
+5. **Debug** → Use debug-specialist agent if issues arise
+6. **Analyze** → Use data-analyst-sql for insights and optimization
+
 ## Key Commands
 
 ### Development
