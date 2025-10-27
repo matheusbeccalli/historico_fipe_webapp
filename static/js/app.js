@@ -373,9 +373,20 @@ async function addVehicle() {
         const modelIdStr = String(modelId);
         yearId = vehicleOptions.model_year_lookup[modelIdStr]?.[yearDesc];
 
+        // Debug logging
+        console.log('[addVehicle] Looking up yearId:', {
+            modelId: modelId,
+            modelIdStr: modelIdStr,
+            yearDesc: yearDesc,
+            yearId: yearId,
+            modelName: modelName,
+            availableYearsForModel: vehicleOptions.model_year_lookup[modelIdStr]
+        });
+
         if (!yearId) {
             alert('Erro: combinação de modelo e ano inválida');
             console.error('Could not find year_id for model:', modelId, 'year:', yearDesc);
+            console.error('Available combinations:', vehicleOptions.model_year_lookup[modelIdStr]);
             return;
         }
     } else {
@@ -384,8 +395,14 @@ async function addVehicle() {
     }
 
     // Check if already added
+    console.log('[addVehicle] Checking for duplicates:', {
+        yearId: yearId,
+        selectedVehicles: selectedVehicles.map(v => ({ id: v.id, model: v.model, year: v.year }))
+    });
+
     if (selectedVehicles.some(v => v.id === yearId)) {
         alert('Este veículo já está na comparação');
+        console.error('[addVehicle] Duplicate detected! YearId', yearId, 'already exists in:', selectedVehicles);
         return;
     }
 
@@ -616,12 +633,24 @@ function filterYearsByModel(modelId) {
     const yearSelect = document.getElementById('yearSelect');
     const currentYearValue = yearSelect.value;
 
+    // Debug logging
+    console.log('[filterYearsByModel] Filtering years:', {
+        modelId: modelId,
+        modelIdStr: modelIdStr,
+        currentYearValue: currentYearValue,
+        availableYears: availableYears,
+        isCurrentYearValid: availableYears.includes(currentYearValue)
+    });
+
     // Repopulate with filtered years
     populateYearDropdown(availableYears);
 
     // If previously selected year is still valid, keep it selected
     if (currentYearValue && availableYears.includes(currentYearValue)) {
         yearSelect.value = currentYearValue;
+        console.log('[filterYearsByModel] Kept previous year selection:', currentYearValue);
+    } else {
+        console.log('[filterYearsByModel] Year cleared. New value:', yearSelect.value);
     }
 }
 
