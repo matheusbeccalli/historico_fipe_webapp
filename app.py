@@ -117,6 +117,46 @@ else:
 
 SessionLocal = sessionmaker(bind=engine)
 
+# Validate database schema on startup
+def validate_database_schema():
+    """
+    Validate that all required tables exist in the database.
+
+    This ensures the application fails fast at startup if the database
+    is not properly initialized, rather than failing during runtime.
+    """
+    required_tables = ['brands', 'car_models', 'model_years', 'car_prices', 'reference_months']
+
+    try:
+        # Get list of existing tables from database
+        from sqlalchemy import inspect
+        inspector = inspect(engine)
+        existing_tables = set(inspector.get_table_names())
+
+        # Check if all required tables exist
+        missing_tables = [table for table in required_tables if table not in existing_tables]
+
+        if missing_tables:
+            app.logger.critical(
+                f"Database schema validation failed! Missing tables: {', '.join(missing_tables)}. "
+                f"Please ensure the database is properly initialized."
+            )
+            raise RuntimeError(
+                f"Database schema validation failed! Missing tables: {', '.join(missing_tables)}. "
+                f"The database must be initialized before starting the application."
+            )
+
+        app.logger.info(f"Database schema validated: all {len(required_tables)} required tables exist")
+
+    except Exception as e:
+        if isinstance(e, RuntimeError):
+            raise  # Re-raise schema validation errors
+        app.logger.error(f"Error validating database schema: {str(e)}")
+        raise RuntimeError(f"Failed to validate database schema: {str(e)}")
+
+# Run schema validation at startup
+validate_database_schema()
+
 # Parse allowed API keys from config and store as a set for fast lookup
 VALID_API_KEYS = set()
 api_keys_str = app.config.get('API_KEYS_ALLOWED', '')
