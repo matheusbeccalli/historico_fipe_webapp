@@ -3,6 +3,7 @@ name: code-reviewer
 description: Use this agent when code has been written or modified and needs to be reviewed for quality, security, and adherence to best practices. This agent should be called proactively after logical chunks of code are completed (e.g., after implementing a new feature, fixing a bug, or refactoring existing code). Examples:\n\n<example>\nContext: User has just written a new API endpoint for the Flask application.\nuser: "I've added a new endpoint /api/vehicle-details that returns comprehensive vehicle information"\nassistant: "Let me review that code for you using the code-reviewer agent to ensure it follows best practices and security standards."\n<commentary>\nThe user has completed a logical chunk of code (new API endpoint), so proactively launch the code-reviewer agent to review it.\n</commentary>\n</example>\n\n<example>\nContext: User has modified database query logic.\nuser: "I've updated the price history query to include filtering by fuel type"\nassistant: "Great! Now let me use the code-reviewer agent to review the changes and ensure the query follows our established patterns."\n<commentary>\nDatabase query modifications are complete, so use the code-reviewer agent to verify the implementation follows SQLAlchemy best practices and the project's established patterns from CLAUDE.md.\n</commentary>\n</example>\n\n<example>\nContext: User explicitly requests a code review.\nuser: "Can you review the authentication middleware I just wrote?"\nassistant: "I'll use the code-reviewer agent to conduct a thorough review of your authentication middleware."\n<commentary>\nExplicit review request - use the code-reviewer agent to analyze the authentication code for security vulnerabilities and best practices.\n</commentary>\n</example>
 model: sonnet
 mcp_servers:
+  - serena
   - context7
   - socket-mcp
 ---
@@ -64,18 +65,67 @@ mcp__socket-mcp__depscore(packages=[
 - **Stop generating code and alert the user** if any scores are low
 - Check both manifest files (requirements.txt) AND imports in the code
 
+## Serena MCP - Semantic Code Navigation
+Use Serena for efficient, symbol-based code exploration instead of reading entire files:
+
+**When to use Serena:**
+- ✅ **ALWAYS** use Serena tools instead of reading full files during code review
+- ✅ Getting overview of a file's structure before reviewing
+- ✅ Reading specific functions/classes that need review
+- ✅ Finding where a symbol is used to check impact of changes
+- ✅ Searching for patterns across the codebase
+
+**Workflow:**
+```python
+# 1. Get file overview first (ALWAYS do this before reading full file)
+mcp__serena__get_symbols_overview(relative_path="app.py")
+
+# 2. Read specific symbols that need review
+mcp__serena__find_symbol(
+    name_path="get_brands",
+    relative_path="app.py",
+    include_body=True
+)
+
+# 3. Find where symbol is referenced to assess change impact
+mcp__serena__find_referencing_symbols(
+    name_path="get_brands",
+    relative_path="app.py"
+)
+
+# 4. Search for patterns if needed
+mcp__serena__search_for_pattern(
+    substring_pattern="@require_api_key",
+    relative_path="app.py"
+)
+```
+
+**Important:**
+- Serena reduces token usage by reading only relevant code sections
+- Use `get_symbols_overview` BEFORE reading entire files
+- Use `find_symbol` with `include_body=True` to read specific functions
+- Use `find_referencing_symbols` to understand impact of changes
+
 # Integration into Review Process
 
 **Before starting the review:**
-1. If the code uses external library APIs, use Context7 to fetch relevant documentation
-2. If new dependencies were added or imports changed, use Socket to scan dependencies
+1. Use Serena's `get_symbols_overview` to understand file structure without reading everything
+2. If the code uses external library APIs, use Context7 to fetch relevant documentation
+3. If new dependencies were added or imports changed, use Socket to scan dependencies
+
+**During code exploration:**
+- Use Serena to navigate code efficiently (get overview, read specific symbols)
+- Use Serena's `find_referencing_symbols` to assess impact of changes
+- Use Serena to search for patterns instead of grepping entire files
 
 **During security analysis:**
 - Use Socket to verify all dependencies are secure
 - Use Context7 to validate authentication/authorization patterns against framework docs
 - Check for deprecated library methods using Context7
+- Use Serena to find all usages of security-sensitive functions
 
 **During best practices review:**
+- Use Serena to efficiently read only the functions/classes being reviewed
 - Cross-reference code patterns with Context7 library documentation
 - Validate ORM queries against SQLAlchemy best practices from Context7
 - Ensure Flask route patterns follow official recommendations from Context7
