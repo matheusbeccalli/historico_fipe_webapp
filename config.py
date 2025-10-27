@@ -38,9 +38,11 @@ class Config:
     MAX_CONTENT_LENGTH = 1 * 1024 * 1024  # 1MB max request body size
 
     # Database configuration
-    # By default, uses SQLite for development
+    # By default, uses SQLite for development in a dedicated data directory
     # Set DATABASE_URL environment variable to use PostgreSQL
-    DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///fipe_data.db')
+    # SECURITY: Store SQLite database in data/ directory (not committed to git)
+    _default_db_path = Path(__file__).parent / "data" / "fipe_data.db"
+    DATABASE_URL = os.getenv('DATABASE_URL', f'sqlite:///{_default_db_path}')
     
     # SQLAlchemy settings
     SQLALCHEMY_TRACK_MODIFICATIONS = False  # Reduces overhead

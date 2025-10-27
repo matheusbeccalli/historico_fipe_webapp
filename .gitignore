@@ -46,10 +46,14 @@ instance/
 *.swo
 *~
 
-# Database (optional - remove if you want to commit your database)
+# Database files
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
 *.sqlite3
+data/
 
 # OS
 .DS_Store
