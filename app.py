@@ -561,6 +561,11 @@ def set_security_headers(response):
     ]
     response.headers['Content-Security-Policy'] = '; '.join(csp_directives)
 
+    # Control referrer information leakage
+    # SECURITY: strict-origin-when-cross-origin sends full URL on same-origin,
+    # but only origin on cross-origin requests (no path/query string)
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
     return response
 
 
