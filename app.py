@@ -79,12 +79,31 @@ if api_keys_str:
 
     VALID_API_KEYS = set(keys)
 
+# Custom rate limit key function
+# SECURITY: Rate limit by API key when available (more secure than IP-only)
+def get_rate_limit_key():
+    """
+    Get rate limit key for the current request.
+
+    Uses API key hash if available (prevents bypassing limits via IP rotation),
+    otherwise falls back to IP address.
+
+    Returns:
+        str: Rate limit key in format 'apikey:hash' or 'ip:address'
+    """
+    api_key = request.headers.get('X-API-Key')
+    if api_key and len(api_key) >= 16:
+        # Rate limit by API key hash (prevents key exposure in rate limit storage)
+        return f"apikey:{hash_api_key(api_key)}"
+    # Fall back to IP-based rate limiting
+    return f"ip:{get_remote_address()}"
+
 # Initialize rate limiter
 # Uses in-memory storage (no Redis required) - suitable for single-process deployments
 # For multi-process production with gunicorn, consider using Redis: storage_uri="redis://localhost:6379"
 limiter = Limiter(
     app=app,
-    key_func=get_remote_address,  # Track requests by IP address
+    key_func=get_rate_limit_key,  # Track by API key or IP address
     default_limits=["200 per day", "50 per hour"],  # Global fallback limits
     storage_uri="memory://",  # In-memory storage (no external database needed)
     strategy="fixed-window"  # Simple time window strategy
@@ -909,7 +928,7 @@ def get_months():
 
 @app.route('/api/chart-data', methods=['POST'])
 @require_api_key
-@limiter.limit("30 per minute")  # Moderate limit for complex POST with database joins
+@limiter.limit("20 per minute")  # Reduced limit to prevent data scraping
 def get_chart_data():
     """
     Get price history data for a specific car within a date range.
@@ -1159,7 +1178,7 @@ def compare_vehicles():
 
 @app.route('/api/price', methods=['POST'])
 @require_api_key
-@limiter.limit("30 per minute")  # Moderate limit for database lookup
+@limiter.limit("20 per minute")  # Reduced limit to prevent data scraping
 def get_price():
     """
     Get price information for a specific car at a specific month.
