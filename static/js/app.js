@@ -1575,15 +1575,12 @@ async function loadDefaultVehicle() {
         await loadMonths(defaultCar.year_id);
 
         // Add the vehicle to comparison automatically
-        const brandName = brandSelect.options[brandSelect.selectedIndex].text;
-        const modelName = modelSelect.options[modelSelect.selectedIndex].text;
-        const yearDesc = yearSelect.options[yearSelect.selectedIndex].text;
-
+        // Use data from API instead of reading from dropdowns to avoid timing issues
         const vehicle = {
             id: defaultCar.year_id,
-            brand: brandName,
-            model: modelName,
-            year: yearDesc,
+            brand: defaultCar.brand_name || 'Unknown',
+            model: defaultCar.model_name || 'Unknown',
+            year: defaultCar.year_description || 'Unknown',
             color: VEHICLE_COLORS[0]
         };
 

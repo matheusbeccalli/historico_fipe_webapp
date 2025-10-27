@@ -1576,8 +1576,11 @@ def get_default_car():
 
         return jsonify({
             "brand_id": brand.id,
+            "brand_name": brand.brand_name,
             "model_id": model.id,
-            "year_id": year.id
+            "model_name": model.model_name,
+            "year_id": year.id,
+            "year_description": year.year_description
         })
 
     finally:
