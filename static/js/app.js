@@ -466,10 +466,15 @@ function updateVehiclesUI() {
                     <div class="vehicle-chip-details">${formatYearDescription(vehicle.year)}</div>
                 </div>
             </div>
-            <button class="vehicle-chip-remove" onclick="removeVehicle(${vehicle.id})" title="Remover">
+            <button class="vehicle-chip-remove" data-vehicle-id="${vehicle.id}" title="Remover">
                 <i class="bi bi-x-circle-fill"></i>
             </button>
         `;
+
+        // Add event listener instead of inline onclick (CSP compliant)
+        const removeButton = chip.querySelector('.vehicle-chip-remove');
+        removeButton.addEventListener('click', () => removeVehicle(vehicle.id));
+
         container.appendChild(chip);
     });
 }
