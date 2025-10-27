@@ -623,11 +623,12 @@ def set_security_headers(response):
         g.csp_nonce = nonce
 
     # Content Security Policy - controls what resources can be loaded
-    # SECURITY: Removed 'unsafe-inline' and using nonce-based script execution
+    # NOTE: Plotly requires 'unsafe-inline' for styles as it dynamically generates inline styles
+    # Scripts still use nonce-based execution for security
     csp_directives = [
         "default-src 'self'",
         f"script-src 'self' 'nonce-{nonce}' https://cdn.plot.ly https://cdn.jsdelivr.net",
-        f"style-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        f"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
         "img-src 'self' data:",
         "connect-src 'self' https://cdn.plot.ly https://cdn.jsdelivr.net https://api.bcb.gov.br"
