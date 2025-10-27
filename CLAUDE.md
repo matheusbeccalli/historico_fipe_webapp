@@ -75,7 +75,7 @@ Serena maintains project knowledge in memory files:
 
 ### Specialized AI Agents
 
-This project includes **4 specialized agents** in `.claude/agents/` that should be used proactively:
+This project includes **5 specialized agents** in `.claude/agents/` that should be used proactively:
 
 #### 1. 🔍 code-reviewer
 **When to use:** After writing or modifying code (new features, bug fixes, refactoring)
@@ -141,7 +141,7 @@ Assistant: "I'll use the data-analyst-sql agent to analyze price volatility acro
 
 **Example:**
 ```
-User: "Getting a 500 error on /api/chart-data"
+User: "Getting a 500 error on /api/compare-vehicles"
 Assistant: "Let me use the debug-specialist agent to investigate this error."
 ```
 
@@ -167,6 +167,33 @@ User: "Let's implement the vehicle comparison feature"
 Assistant: "I'll use the feature-implementation-planner agent to create a detailed plan."
 ```
 
+#### 5. 🧪 e2e-testing-specialist
+**When to use:** For end-to-end testing, UI validation, and browser automation
+
+**Capabilities:**
+- Browser automation using Puppeteer MCP
+- User interface functionality testing
+- API integration validation
+- Visual regression testing (screenshots)
+- Performance metrics collection
+- Console error detection
+- Multi-viewport testing (desktop, mobile)
+
+**Use for:**
+- Testing complete user flows (brand → model → year → chart)
+- Validating dropdown cascading and bidirectional filtering
+- Checking multi-vehicle comparison feature
+- Testing theme toggle (light/dark mode)
+- Verifying economic indicators integration
+- Post-deployment smoke testing
+- Regression testing after bug fixes
+
+**Example:**
+```
+User: "Test that the vehicle selection workflow works correctly"
+Assistant: "I'll use the e2e-testing-specialist agent to automate and validate the complete flow."
+```
+
 
 ### Best Practices for Tool Usage
 
@@ -179,20 +206,28 @@ Assistant: "I'll use the feature-implementation-planner agent to create a detail
 1. Use `feature-implementation-planner` agent to create detailed plan
 2. Use Serena MCP for symbol-based code navigation and editing
 3. Use `code-reviewer` agent after completing implementation
-4. Use `debug-specialist` agent if encountering issues
+4. Use `e2e-testing-specialist` agent to validate functionality
+5. Use `debug-specialist` agent if encountering issues
 
 **When analyzing data or queries:**
 1. Use `data-analyst-sql` agent for insights and optimization
 2. Use Serena's `find_symbol` to understand existing query patterns
 3. Use `code-reviewer` agent to validate query security and performance
 
+**When testing:**
+1. Use `e2e-testing-specialist` agent for user flow validation
+2. Test after implementing new features or fixing bugs
+3. Run smoke tests before deployment
+4. Use screenshots and console logs for debugging
+
 **General workflow:**
 1. **Plan** → Use feature-implementation-planner for new features
 2. **Navigate** → Use Serena MCP for code exploration
 3. **Implement** → Use Serena's symbol editing for changes
 4. **Review** → Use code-reviewer agent for quality assurance
-5. **Debug** → Use debug-specialist agent if issues arise
-6. **Analyze** → Use data-analyst-sql for insights and optimization
+5. **Test** → Use e2e-testing-specialist for validation
+6. **Debug** → Use debug-specialist agent if issues arise
+7. **Analyze** → Use data-analyst-sql for insights and optimization
 
 ## Key Commands
 
@@ -397,21 +432,21 @@ The application provides 11 RESTful endpoints (all require `X-API-Key` header ex
 4. **GET /api/default-car** - Get default vehicle selection (returns names + IDs)
 
 **Price & History:**
-5. **POST /api/chart-data** - Get price history for a single vehicle (legacy endpoint, still works)
-6. **POST /api/compare-vehicles** - Get price history for multiple vehicles (up to 5)
-7. **POST /api/price** - Get single price point for a vehicle at a specific month
+5. **POST /api/compare-vehicles** - Get price history for multiple vehicles (up to 5)
+6. **POST /api/price** - Get single price point for a vehicle at a specific month
 
 **Economic & Market Analysis:**
-8. **POST /api/economic-indicators** - Get IPCA and CDI data for date ranges
-9. **POST /api/depreciation-analysis** - Get market-wide depreciation statistics by brand/year
+7. **POST /api/economic-indicators** - Get IPCA and CDI data for date ranges
+8. **POST /api/depreciation-analysis** - Get market-wide depreciation statistics by brand/year
 
 **System:**
-10. **GET /health** - Health check endpoint for monitoring and load balancers
-11. **GET /** - Main page (no authentication required)
+9. **GET /health** - Health check endpoint for monitoring and load balancers
+10. **GET /** - Main page (no authentication required)
 
 **Deprecated (Removed):**
 - ~~GET /api/models/<brand_id>~~ - Replaced by `/api/vehicle-options/<brand_id>`
 - ~~GET /api/years/<model_id>~~ - Replaced by `/api/vehicle-options/<brand_id>`
+- ~~POST /api/chart-data~~ - Replaced by `/api/compare-vehicles`
 
 ### Single Price Lookup Endpoint
 
@@ -451,7 +486,7 @@ POST /api/price
 
 ### Extending the Chart
 
-The chart data format is defined in `/api/chart-data` (app.py:197-305). Each data point must include:
+The chart data format is defined in `/api/compare-vehicles`. Each data point must include:
 - `date` (ISO format string)
 - `price` (float)
 - `label` (Portuguese formatted date)
@@ -602,11 +637,32 @@ This ensures that only the origin (not full URL) is sent in the Referer header w
 
 ### Rate Limiting
 
-**Prevents API abuse** using Flask-Limiter:
-- Default: 200 requests per day, 50 per hour per IP
-- `/api/economic-indicators`: 60 per hour (higher for normal usage)
-- `/health`: 60 per minute (for monitoring systems)
-- Returns 429 Too Many Requests when exceeded
+**Prevents API abuse** using Flask-Limiter with **intelligent rate limit differentiation**:
+
+The application applies **different rate limits for browser users vs external API clients**:
+- **Browser users** (using the shared `API_KEY` from `.env`) are rate-limited **by IP address**, with generous per-minute limits for interactive UI usage
+- **External API clients** (using their own unique API keys) are rate-limited **by API key**, with stricter limits to prevent scraping and abuse
+
+**Rate Limits by Endpoint:**
+
+| Endpoint | Browser Users | External API Clients |
+|----------|--------------|---------------------|
+| `/api/brands` | 120/minute | 60/minute |
+| `/api/vehicle-options` | 120/minute | 60/minute |
+| `/api/months` | 120/minute | 60/minute |
+| `/api/default-car` | 120/minute | 60/minute |
+| `/api/price` | 60/minute | 20/minute |
+| `/api/compare-vehicles` | 30/minute | 10/minute |
+| `/api/economic-indicators` | 60/minute | 60/hour |
+| `/api/depreciation-analysis` | 20/minute | 10/minute |
+| `/health` | 60/minute | 60/minute |
+| `/` (index page) | 20/minute | 20/minute |
+
+**Implementation Details** (app.py:186-236):
+- `get_rate_limit_key()` distinguishes browser users from API clients based on the API key
+- `make_rate_limit(browser_limit, api_limit)` creates dynamic limit functions per endpoint
+- Browser users identified by matching `request.headers['X-API-Key']` with `app.config['API_KEY']`
+- Returns HTTP 429 Too Many Requests when limits exceeded
 
 ### Health Check Endpoint
 

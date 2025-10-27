@@ -18,12 +18,20 @@ historico_fipe_webapp/
 ├── DESIGN_INSTRUCTIONS.md      # Design guidelines
 ├── setup.bat                   # Windows setup script
 ├── setup.sh                    # Linux/Mac setup script
-├── fipe_data.db                # SQLite database (17.5 MB)
+├── data/                       # Database directory (not in git)
+│   └── fipe_data.db            # SQLite database (17.5 MB)
+├── logs/                       # Production logs (not in git, created at runtime)
+│   └── fipe_app.log            # Rotating log file
 ├── venv/                       # Python virtual environment
 ├── __pycache__/                # Python bytecode cache
 ├── .git/                       # Git repository
 ├── .serena/                    # Serena MCP data
 ├── .claude/                    # Claude Code data
+│   └── agents/                 # Specialized AI agents
+│       ├── code-reviewer.md
+│       ├── data-analyst-sql.md
+│       ├── debug-specialist.md
+│       └── feature-implementation-planner.md
 ├── .debug/                     # Debug files
 ├── templates/                  # HTML templates
 │   └── index.html              # Single-page application
@@ -31,7 +39,7 @@ historico_fipe_webapp/
 │   ├── css/
 │   │   └── style.css           # Custom CSS styles
 │   └── js/
-│       └── app.js              # Frontend JavaScript
+│       └── app.js              # Frontend JavaScript (~2000 lines)
 └── docs/                       # Documentation
     ├── database_schema.md      # Database structure reference
     └── ENV_SETUP.md            # Environment configuration guide
@@ -45,23 +53,34 @@ historico_fipe_webapp/
 
 **Key Sections**:
 - Configuration and initialization (lines 1-150)
+  - Security headers and CSP setup
+  - Production logging with rotation
+  - Database schema validation
 - Database session management (get_db helper)
 - API key authentication decorator
 - Security helpers (sanitization, validation)
 - Rate limiting and CSRF protection
-- API endpoints:
-  - `/api/brands` - Get brands
-  - `/api/models/<brand_id>` - Get models
-  - `/api/years/<model_id>` - Get years
-  - `/api/vehicle-options/<brand_id>` - Bidirectional filtering
-  - `/api/months` - Get reference months
-  - `/api/chart-data` - Price history for charts
-  - `/api/compare-vehicles` - Multi-vehicle comparison
-  - `/api/price` - Single price lookup
-  - `/api/economic-indicators` - IPCA and CDI data
-  - `/api/default-car` - Default vehicle selection
+- API endpoints (11 total):
+  - Vehicle Data:
+    - `/api/brands` - Get brands (filtered by latest month)
+    - `/api/vehicle-options/<brand_id>` - Bidirectional filtering data
+    - `/api/months` - Get reference months
+    - `/api/default-car` - Default vehicle (with names + IDs)
+  - Price & History:
+    - `/api/compare-vehicles` - Multi-vehicle comparison (up to 5)
+    - `/api/price` - Single price lookup
+  - Economic & Market:
+    - `/api/economic-indicators` - IPCA and CDI data
+    - `/api/depreciation-analysis` - Market depreciation stats
+  - System:
+    - `/health` - Health check endpoint
+    - `/` - Main page
 - Error handlers (404, 500)
-- Security headers
+- Security headers (CSP, Referrer-Policy)
+
+**Deprecated endpoints (removed ~100 lines)**:
+- ~~`/api/models/<brand_id>`~~ - Replaced by `/api/vehicle-options`
+- ~~`/api/years/<model_id>`~~ - Replaced by `/api/vehicle-options`
 
 ### webapp_database_models.py (ORM Models)
 **Lines**: 457  
@@ -99,47 +118,58 @@ historico_fipe_webapp/
 **Purpose**: Single-page application template  
 **Features**:
 - Bootstrap 5 layout
-- Cascading dropdowns for vehicle selection
+- Cascading dropdowns with bidirectional filtering
+- Multi-vehicle selection with chip display
 - Plotly chart container
 - Statistics display area
 - Dark/light theme toggle
-- Tabbed navigation for statistics
+- Tabbed navigation (Comparação/Depreciação)
 - Economic indicators display
+- CSP nonce-based script loading
 
 ### static/js/app.js
+**Lines**: ~2000 (after cleanup, removed ~68 deprecated lines)  
 **Purpose**: Frontend JavaScript application  
 **Features**:
-- API communication (fetch with API key headers)
-- Dropdown cascade logic
-- Bidirectional filtering
+- API communication (fetch with X-API-Key headers)
+- Bidirectional filtering logic
+- Multi-vehicle comparison (up to 5 vehicles)
+- Vehicle chip display with remove buttons (CSP-compliant)
 - Chart rendering with Plotly
-- Vehicle comparison logic
 - Theme switching (dark/light mode)
 - localStorage for preferences
 - Error handling and user feedback
+- Economic indicators integration
+
+**Deprecated functions (removed)**:
+- ~~`loadModels()`~~ - Replaced by `loadVehicleOptions()`
+- ~~`loadYears()`~~ - Replaced by `loadVehicleOptions()`
+- ~~`displayCarInfo()`~~ - Not used anymore
 
 ### static/css/style.css
 **Purpose**: Custom CSS styles  
 **Features**:
-- Dark mode styles
+- Dark mode styles with CSS variables
 - Theme transition animations
 - Custom Bootstrap overrides
 - Chart container styling
 - Premium UI enhancements
+- Vehicle chip styling
 
 ## Documentation Files
 
 ### README.md
 **Size**: 14 KB  
-**Purpose**: Main project documentation  
+**Purpose**: Main project documentation (in Portuguese)  
 **Sections**:
 - Overview and warnings about database requirement
-- Recent features
-- Functionality list
+- Recent features (security, multi-vehicle, depreciation)
+- Functionality list (organized by category)
 - Installation and setup
 - Configuration guide
 - Usage instructions
-- API endpoints reference
+- API endpoints reference (11 endpoints)
+- Security section (CSP, rate limiting, logging, etc.)
 - Troubleshooting
 - Technologies used
 - Future improvements roadmap
@@ -148,11 +178,14 @@ historico_fipe_webapp/
 **Size**: 11 KB  
 **Purpose**: Technical guide for developers and AI assistants  
 **Sections**:
-- Project overview
+- Project overview with key features
+- Development tools & agents (Serena MCP, specialized agents)
 - Key commands
 - Architecture overview
 - File structure and responsibilities
 - Critical implementation details
+- API endpoints reference (11 endpoints with deprecation notes)
+- Security features section (CSP, Referrer-Policy, logging, etc.)
 - Common modifications
 - Database query patterns
 - API authentication system
@@ -223,19 +256,30 @@ historico_fipe_webapp/
 
 ## Database File
 
-### fipe_data.db
+### data/fipe_data.db
 **Size**: 17.5 MB  
 **Type**: SQLite 3 database  
 **Purpose**: Historical FIPE price data  
 **Note**: Not committed to git, must be created separately
+**Location**: Moved to `data/` directory (previously in root)
+
+## Logs Directory
+
+### logs/fipe_app.log
+**Purpose**: Production application logs  
+**Features**:
+- Rotating file handler (10MB per file, 10 backups)
+- Only created in production mode
+- Contains API access logs, errors, and warnings
+**Note**: Not committed to git, created at runtime
 
 ## Important Patterns
 
 ### API Endpoint Structure
 All API endpoints follow this pattern:
 1. Route decorator with path and methods
-2. `@require_api_key` decorator
-3. `@limiter.limit()` decorator
+2. `@require_api_key` decorator (except `/` and `/health`)
+3. `@limiter.limit()` decorator for rate limiting
 4. Get database session via `get_db()`
 5. Try-finally block for session management
 6. Query using SQLAlchemy ORM
@@ -249,3 +293,18 @@ All frontend API calls:
 3. Handle errors with try-catch
 4. Update UI based on response
 5. Show user feedback on errors
+
+### Security Implementation
+1. CSP with nonce-based script execution
+2. Referrer-Policy header
+3. Rate limiting on all endpoints
+4. API key authentication
+5. Production logging with rotation
+6. Database schema validation on startup
+7. Input sanitization for SQL LIKE patterns
+
+### Code Cleanup (Recent)
+Removed 189 lines of deprecated code:
+- Backend: 2 endpoints (~100 lines)
+- Frontend: 3 functions (~68 lines)
+- Consolidated vehicle data loading into single endpoint

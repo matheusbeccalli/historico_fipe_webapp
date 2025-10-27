@@ -259,81 +259,6 @@ class CarPrice(Base):
 
 
 # ============================================================================
-# DATABASE CONNECTION
-# ============================================================================
-
-def get_database_engine(database_url: str = None):
-    """
-    Create database engine.
-
-    Args:
-        database_url: SQLAlchemy database URL. If None, uses environment variable
-                     DATABASE_URL or defaults to SQLite in current directory.
-
-    Returns:
-        SQLAlchemy engine
-    """
-    if database_url is None:
-        database_url = os.getenv('DATABASE_URL', 'sqlite:///fipe_data.db')
-
-    # For webapp, disable echo to reduce logs (can enable for debugging)
-    engine = create_engine(database_url, echo=False)
-    return engine
-
-
-def get_db_session(database_url: str = None) -> Session:
-    """
-    Create a new database session.
-
-    This is the main function to use in your webapp.
-    Remember to close the session when done!
-
-    Args:
-        database_url: Optional database URL override
-
-    Returns:
-        SQLAlchemy Session object
-
-    Example:
-        session = get_db_session()
-        try:
-            brands = session.query(Brand).all()
-            # ... use data ...
-        finally:
-            session.close()
-    """
-    engine = get_database_engine(database_url)
-    SessionMaker = sessionmaker(bind=engine)
-    return SessionMaker()
-
-
-def create_session_factory(database_url: str = None) -> sessionmaker:
-    """
-    Create a session factory for dependency injection or connection pooling.
-
-    Useful for web frameworks like FastAPI or Flask.
-
-    Args:
-        database_url: Optional database URL override
-
-    Returns:
-        SQLAlchemy sessionmaker
-
-    Example (FastAPI):
-        SessionLocal = create_session_factory()
-
-        def get_db():
-            db = SessionLocal()
-            try:
-                yield db
-            finally:
-                db.close()
-    """
-    engine = get_database_engine(database_url)
-    return sessionmaker(bind=engine, autocommit=False, autoflush=False)
-
-
-# ============================================================================
 # UTILITY FUNCTIONS
 # ============================================================================
 
@@ -351,36 +276,6 @@ def format_price_brl(price: float) -> str:
     formatted = f"{price:,.2f}"
     formatted = formatted.replace(',', 'TEMP').replace('.', ',').replace('TEMP', '.')
     return f"R$ {formatted}"
-
-
-def parse_month_portuguese(month_text: str) -> datetime:
-    """
-    Parse Portuguese month string to datetime object.
-
-    Args:
-        month_text: Month string like "janeiro/2024" or "dezembro/2025"
-
-    Returns:
-        datetime object (first day of month)
-    """
-    portuguese_months = {
-        'janeiro': 1, 'fevereiro': 2, 'março': 3, 'abril': 4,
-        'maio': 5, 'junho': 6, 'julho': 7, 'agosto': 8,
-        'setembro': 9, 'outubro': 10, 'novembro': 11, 'dezembro': 12
-    }
-
-    parts = month_text.lower().split('/')
-    if len(parts) != 2:
-        raise ValueError(f"Invalid month format: {month_text}")
-
-    month_name, year_str = parts
-    month_number = portuguese_months.get(month_name.strip())
-
-    if not month_number:
-        raise ValueError(f"Unknown month name: {month_name}")
-
-    year = int(year_str.strip())
-    return datetime(year, month_number, 1)
 
 
 def format_month_portuguese(date_obj: datetime) -> str:
@@ -410,8 +305,11 @@ if __name__ == "__main__":
     print("FIPE Database Models for Webapp")
     print("=" * 50)
 
-    # Create session
-    session = get_db_session()
+    # Create session (using the same pattern as app.py)
+    database_url = os.getenv('DATABASE_URL', 'sqlite:///fipe_data.db')
+    engine = create_engine(database_url, echo=False)
+    SessionMaker = sessionmaker(bind=engine)
+    session = SessionMaker()
 
     try:
         # Example 1: Count records
@@ -452,4 +350,4 @@ if __name__ == "__main__":
 
     print("\n" + "=" * 50)
     print("Ready to use in your webapp!")
-    print("Import with: from webapp_database_models import get_db_session, Brand, CarModel, etc.")
+    print("Import with: from webapp_database_models import Brand, CarModel, ModelYear, etc.")

@@ -52,7 +52,7 @@ query = (
 )
 ```
 
-This pattern appears in app.py around lines 244-266 and is fundamental to the application.
+This pattern appears in app.py and is fundamental to the application.
 
 ### Latest Month Filtering
 Many queries filter by the latest reference month to show only current vehicles:
@@ -140,6 +140,31 @@ def endpoint_name():
 7. `jsonify()` for JSON response
 8. Session closure in `finally` block
 
+### API Endpoints (10 total)
+
+**Vehicle Data:**
+1. `GET /api/brands` - List all brands available in most recent FIPE table
+2. `GET /api/vehicle-options/<brand_id>` - Get models and years with bidirectional filtering support
+3. `GET /api/months` - List all available reference months
+4. `GET /api/default-car` - Get default vehicle selection (returns names + IDs)
+
+**Price & History:**
+5. `POST /api/compare-vehicles` - Get price history for multiple vehicles (up to 5)
+6. `POST /api/price` - Get single price point for vehicle at specific month
+
+**Economic & Market Analysis:**
+7. `POST /api/economic-indicators` - Get IPCA and CDI data for date ranges
+8. `POST /api/depreciation-analysis` - Get market-wide depreciation statistics by brand/year
+
+**System:**
+9. `GET /health` - Health check for monitoring and load balancers
+10. `GET /` - Main page (no authentication required)
+
+**Deprecated (Removed):**
+- ~~GET /api/models/<brand_id>~~ - Replaced by /api/vehicle-options/<brand_id>
+- ~~GET /api/years/<model_id>~~ - Replaced by /api/vehicle-options/<brand_id>
+- ~~POST /api/chart-data~~ - Replaced by /api/compare-vehicles
+
 ### API Authentication Pattern
 
 **Two-variable system**:
@@ -165,34 +190,52 @@ const response = await fetch('/api/endpoint', {
 
 ## Frontend-Backend Communication Pattern
 
-### Cascading Dropdown Pattern
-The UI uses a progressive disclosure pattern:
+### Bidirectional Filtering Pattern
+The UI uses an optimized bidirectional filtering pattern:
 
 **Flow**:
 1. Page loads → Fetch brands → Populate brand dropdown
-2. User selects brand → Fetch models for brand → Populate model dropdown
-3. User selects model → Fetch years for model → Populate year dropdown
-4. User selects year + date range → POST to `/api/chart-data` → Render chart
+2. User selects brand → Fetch `/api/vehicle-options/<brand_id>` → Returns models, years, and `model_year_lookup` mapping
+3. User can select model first (filters years) OR year first (filters models)
+4. User adds vehicle to comparison list
+5. User clicks "Atualizar Gráfico" → POST to `/api/compare-vehicles` with all selected vehicles → Render multi-vehicle chart
 
-**Bidirectional filtering** (newer feature):
-- Can select model OR year first
-- The other dropdown adjusts automatically
-- `/api/vehicle-options/<brand_id>` returns mappings for both directions
+**Key optimization**: `/api/vehicle-options` returns all data in one call:
+```json
+{
+  "models": [...],
+  "years": [...],
+  "model_year_lookup": {
+    "model_id": [year_id1, year_id2],
+    "year_id": [model_id1, model_id2]
+  }
+}
+```
 
 **Implementation in app.js**:
 ```javascript
-async function loadBrands() {
-    const response = await fetch('/api/brands', {
+async function loadVehicleOptions(brandId) {
+    const response = await fetch(`/api/vehicle-options/${brandId}`, {
         headers: { 'X-API-Key': window.API_KEY }
     });
-    const brands = await response.json();
-    populateDropdown('brand-select', brands);
+    const data = await response.json();
+    
+    // Store for bidirectional filtering
+    vehicleOptions = data;
+    
+    // Populate both dropdowns
+    populateDropdown('model-select', data.models);
+    populateDropdown('year-select', data.years);
 }
 
-async function onBrandChange() {
-    const brandId = document.getElementById('brand-select').value;
-    const models = await loadModels(brandId);
-    populateDropdown('model-select', models);
+function filterYearsByModel(modelId) {
+    const validYears = vehicleOptions.model_year_lookup[modelId] || [];
+    // Filter year dropdown to show only valid years for this model
+}
+
+function filterModelsByYear(yearId) {
+    const validModels = vehicleOptions.model_year_lookup[yearId] || [];
+    // Filter model dropdown to show only valid models for this year
 }
 ```
 
@@ -238,7 +281,7 @@ month_date = "2024-01-01"
 display = format_month_portuguese(month_date)  # "janeiro/2024"
 ```
 
-**Helper function** (webapp_database_models.py:387):
+**Helper function** (webapp_database_models.py):
 ```python
 def format_month_portuguese(date_str):
     """Convert YYYY-MM-DD to 'mês/ano' in Portuguese."""
@@ -258,7 +301,7 @@ price = 11520.00
 display = format_price_brl(price)  # "R$ 11.520,00"
 ```
 
-**Helper function** (webapp_database_models.py:341):
+**Helper function** (webapp_database_models.py):
 ```python
 def format_price_brl(price):
     """Format price as Brazilian Real."""
@@ -266,6 +309,85 @@ def format_price_brl(price):
 ```
 
 ## Security Patterns
+
+### Content Security Policy (CSP)
+**Nonce-based script execution** prevents XSS attacks (app.py):
+
+```python
+@app.after_request
+def set_security_headers(response):
+    nonce = secrets.token_urlsafe(16)
+    g.csp_nonce = nonce
+    
+    csp_directives = [
+        "default-src 'self'",
+        f"script-src 'self' 'nonce-{nonce}' https://cdn.plot.ly https://cdn.jsdelivr.net",
+        f"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+        "img-src 'self' data:",
+        "connect-src 'self' https://cdn.plot.ly https://cdn.jsdelivr.net https://api.bcb.gov.br"
+    ]
+    
+    response.headers['Content-Security-Policy'] = "; ".join(csp_directives)
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
+```
+
+**Important**: When adding external resources, update the appropriate CSP directive or they will be blocked.
+
+### Referrer-Policy Header
+Prevents information leakage in HTTP headers:
+```python
+response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+```
+
+### Production Logging
+Log rotation prevents disk exhaustion (app.py):
+```python
+if is_production:
+    logs_dir = Path(__file__).parent / 'logs'
+    logs_dir.mkdir(exist_ok=True)
+    
+    file_handler = RotatingFileHandler(
+        logs_dir / 'fipe_app.log',
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=10
+    )
+```
+
+### Database Schema Validation
+Ensures database integrity on startup (app.py):
+```python
+def validate_database_schema():
+    """Validate that all required tables exist in the database."""
+    required_tables = ['brands', 'car_models', 'model_years', 'car_prices', 'reference_months']
+    
+    from sqlalchemy import inspect
+    inspector = inspect(engine)
+    existing_tables = set(inspector.get_table_names())
+    
+    missing_tables = [table for table in required_tables if table not in existing_tables]
+    
+    if missing_tables:
+        app.logger.critical(f"Database schema validation failed! Missing tables: {', '.join(missing_tables)}")
+        raise RuntimeError(f"Database schema validation failed!")
+    
+    app.logger.info(f"Database schema validated: all {len(required_tables)} required tables exist")
+```
+
+### Rate Limiting
+Prevents API abuse using Flask-Limiter:
+```python
+limiter = Limiter(
+    app=app,
+    key_func=lambda: request.headers.get('X-API-Key', 'anonymous')
+)
+
+# Default: 200 per day, 50 per hour
+# Specific endpoints:
+@limiter.limit("60 per hour")  # /api/economic-indicators
+@limiter.limit("60 per minute")  # /health
+```
 
 ### Input Validation
 ```python
@@ -289,34 +411,6 @@ query = f"SELECT * FROM brands WHERE name = '{user_input}'"
 
 # CORRECT - use SQLAlchemy ORM
 results = db.query(Brand).filter(Brand.brand_name == user_input).all()
-```
-
-### CSRF Protection
-```python
-csrf = CSRFProtect(app)
-# Automatically protects POST requests
-```
-
-### Rate Limiting
-```python
-limiter = Limiter(
-    app=app,
-    key_func=lambda: request.headers.get('X-API-Key', 'anonymous')
-)
-
-@limiter.limit("60 per minute")
-def endpoint():
-    pass
-```
-
-### Security Headers
-```python
-@app.after_request
-def set_security_headers(response):
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'DENY'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    return response
 ```
 
 ## Session Management Pattern
@@ -345,35 +439,6 @@ def get_db():
 
 ## Chart Data Pattern
 
-### Chart Data Structure
-Data sent to Plotly must have this format:
-
-```python
-chart_data = {
-    'dates': ['2024-01-01', '2024-02-01', ...],
-    'prices': [11520.00, 11800.00, ...],
-    'labels': ['janeiro/2024', 'fevereiro/2024', ...]
-}
-```
-
-**Implementation**:
-```python
-dates = []
-prices = []
-labels = []
-
-for month_date, price in query.all():
-    dates.append(month_date.isoformat())
-    prices.append(price)
-    labels.append(format_month_portuguese(month_date))
-
-return jsonify({
-    'dates': dates,
-    'prices': prices,
-    'labels': labels
-})
-```
-
 ### Multi-Vehicle Comparison
 For vehicle comparison, structure is:
 
@@ -384,14 +449,15 @@ For vehicle comparison, structure is:
             'name': 'Volkswagen Gol 2024 Flex',
             'dates': [...],
             'prices': [...],
-            'labels': [...]
+            'labels': [...],
+            'stats': {
+                'current': 56789.00,
+                'min': 54000.00,
+                'max': 58000.00,
+                'variation_percent': 5.2
+            }
         },
-        {
-            'name': 'Fiat Uno 2024 Flex',
-            'dates': [...],
-            'prices': [...],
-            'labels': [...]
-        }
+        # ... up to 5 vehicles
     ]
 }
 ```

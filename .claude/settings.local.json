@@ -4,7 +4,21 @@
       "Bash(git commit:*)",
       "mcp__serena__search_for_pattern",
       "mcp__serena__find_symbol",
-      "mcp__serena__get_symbols_overview"
+      "mcp__serena__get_symbols_overview",
+      "mcp__serena__list_memories",
+      "mcp__serena__read_memory",
+      "mcp__serena__write_memory",
+      "mcp__puppeteer__puppeteer_navigate",
+      "mcp__puppeteer__puppeteer_evaluate",
+      "mcp__puppeteer__puppeteer_select",
+      "mcp__puppeteer__puppeteer_click",
+      "Bash(timeout 5 bash:*)",
+      "mcp__puppeteer__puppeteer_screenshot",
+      "Bash(curl:*)",
+      "mcp__serena__replace_symbol_body",
+      "mcp__serena__insert_after_symbol",
+      "mcp__serena__find_referencing_symbols",
+      "mcp__serena__think_about_collected_information"
     ],
     "deny": [],
     "ask": []

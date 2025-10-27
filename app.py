@@ -188,18 +188,52 @@ def get_rate_limit_key():
     """
     Get rate limit key for the current request.
 
-    Uses API key hash if available (prevents bypassing limits via IP rotation),
-    otherwise falls back to IP address.
+    Browser users (using the shared API_KEY from session) are rate-limited by IP
+    to allow multiple simultaneous users without shared limit exhaustion.
+    External API clients are rate-limited by their unique API key hash.
 
     Returns:
-        str: Rate limit key in format 'apikey:hash' or 'ip:address'
+        str: Rate limit key in format 'browser-ip:address', 'apikey:hash', or 'ip:address'
     """
     api_key = request.headers.get('X-API-Key')
+    
+    # Check if this is a browser user using the shared session-based API key
+    # Browser requests include the API key from window.API_KEY
+    if api_key == app.config.get('API_KEY'):
+        # Browser users: rate limit by IP (each user gets independent limit)
+        return f"browser-ip:{get_remote_address()}"
+    
+    # External API clients: rate limit by API key hash
     if api_key and len(api_key) >= 16:
         # Rate limit by API key hash (prevents key exposure in rate limit storage)
         return f"apikey:{hash_api_key(api_key)}"
-    # Fall back to IP-based rate limiting
+    
+    # No API key or invalid: fall back to IP-based rate limiting
     return f"ip:{get_remote_address()}"
+
+
+def make_rate_limit(browser_limit, api_limit):
+    """
+    Create a rate limit function that returns different limits for browser vs API clients.
+
+    Browser users (using the shared API_KEY) get more generous limits for interactive UI.
+    External API clients get stricter limits to prevent abuse and scraping.
+
+    Args:
+        browser_limit: Limit string for browser users (e.g., "60 per minute")
+        api_limit: Limit string for external API clients (e.g., "10 per minute")
+
+    Returns:
+        Function that returns the appropriate limit string for the current request
+    """
+    def get_limit():
+        api_key = request.headers.get('X-API-Key')
+        # Check if this is a browser user (using shared API_KEY)
+        if api_key == app.config.get('API_KEY'):
+            return browser_limit
+        # External API client
+        return api_limit
+    return get_limit
 
 # Initialize rate limiter
 # Uses in-memory storage (no Redis required) - suitable for single-process deployments
@@ -743,7 +777,7 @@ def health():
 
 @app.route('/api/brands', methods=['GET'])
 @require_api_key
-@limiter.limit("60 per minute")  # Generous limit for simple GET request
+@limiter.limit(make_rate_limit("120 per minute", "60 per minute"))
 def get_brands():
     """
     Get all available car brands that have models in the latest reference month.
@@ -794,7 +828,7 @@ def get_brands():
 
 @app.route('/api/vehicle-options/<int:brand_id>', methods=['GET'])
 @require_api_key
-@limiter.limit("60 per minute")
+@limiter.limit(make_rate_limit("120 per minute", "60 per minute"))
 def get_vehicle_options(brand_id):
     """
     Get all models and years for a brand with cross-filtering mappings,
@@ -931,7 +965,7 @@ def get_vehicle_options(brand_id):
 
 @app.route('/api/months', methods=['GET'])
 @require_api_key
-@limiter.limit("60 per minute")
+@limiter.limit(make_rate_limit("120 per minute", "60 per minute"))
 def get_months():
     """
     Get all available reference months from the database.
@@ -983,130 +1017,9 @@ def get_months():
         db.close()
 
 
-@app.route('/api/chart-data', methods=['POST'])
-@require_api_key
-@limiter.limit("20 per minute")  # Reduced limit to prevent data scraping
-def get_chart_data():
-    """
-    Get price history data for a specific car within a date range.
-    
-    Expects JSON POST body:
-    {
-        "year_id": 123,
-        "start_date": "2023-01-01",
-        "end_date": "2024-12-01"
-    }
-    
-    Returns:
-        JSON object with chart data and car information:
-        {
-            "car_info": {
-                "brand": "Volkswagen",
-                "model": "Gol 1.0",
-                "year": "2024 Flex"
-            },
-            "data": [
-                {"date": "2023-01-01", "price": 45000.00, "label": "janeiro/2023"},
-                {"date": "2023-02-01", "price": 46000.00, "label": "fevereiro/2023"},
-                ...
-            ]
-        }
-    """
-    db = get_db()
-    try:
-        # Get parameters from POST request body
-        data = request.get_json()
-        year_id_raw = data.get('year_id')
-        start_date_str = data.get('start_date')
-        end_date_str = data.get('end_date')
-
-        # Validate year_id
-        year_id, error = validate_positive_integer(year_id_raw, 'year_id')
-        if error:
-            return jsonify({"error": error}), 400
-
-        # Validate date range
-        start_date, end_date, error = validate_date_range(start_date_str, end_date_str)
-        if error:
-            return jsonify({"error": error}), 400
-        
-        # Build the query
-        # We join multiple tables to get all the information we need
-        query = (
-            db.query(
-                ReferenceMonth.month_date,
-                CarPrice.price,
-                Brand.brand_name,
-                CarModel.model_name,
-                ModelYear.year_description
-            )
-            .join(CarPrice.reference_month)
-            .join(CarPrice.model_year)
-            .join(ModelYear.car_model)
-            .join(CarModel.brand)
-            .filter(ModelYear.id == year_id)
-        )
-        
-        # Apply date filters if provided
-        if start_date:
-            query = query.filter(ReferenceMonth.month_date >= start_date)
-        if end_date:
-            query = query.filter(ReferenceMonth.month_date <= end_date)
-        
-        # Order by date (oldest to newest for the chart)
-        query = query.order_by(ReferenceMonth.month_date)
-        
-        # Execute query
-        results = query.all()
-        
-        # Check if we have data
-        if not results:
-            return jsonify({
-                "error": "No data found for the selected car and date range"
-            }), 404
-        
-        # Extract car information from first result
-        car_info = {
-            "brand": results[0].brand_name,
-            "model": results[0].model_name,
-            "year": results[0].year_description
-        }
-        
-        # Format the price data for the chart
-        chart_data = [
-            {
-                "date": result.month_date.isoformat(),
-                "price": float(result.price),  # Ensure it's a float for JSON
-                "label": format_month_portuguese(result.month_date)
-            }
-            for result in results
-        ]
-        
-        return jsonify({
-            "car_info": car_info,
-            "data": chart_data
-        })
-    
-    except ValueError as e:
-        # Client error - invalid input that passed initial validation
-        app.logger.warning(f"Invalid input in get_chart_data: {type(e).__name__}")
-        return jsonify({"error": "Invalid input parameters"}), 400
-    except (SQLAlchemyError, DatabaseError) as e:
-        # Database error - don't expose details to client
-        app.logger.error(f"Database error in get_chart_data: {type(e).__name__}", exc_info=True)
-        return jsonify({"error": "Database error occurred"}), 500
-    except Exception as e:
-        # Unexpected error - log but don't expose details
-        app.logger.error(f"Unexpected error in get_chart_data: {type(e).__name__}", exc_info=True)
-        return jsonify({"error": "An unexpected error occurred"}), 500
-
-    finally:
-        db.close()
-
-
 @app.route('/api/compare-vehicles', methods=['POST'])
 @require_api_key
-@limiter.limit("10 per minute")  # Strict limit - very expensive query comparing multiple vehicles
+@limiter.limit(make_rate_limit("30 per minute", "10 per minute"))
 def compare_vehicles():
     """
     Get price history data for multiple vehicles for comparison.
@@ -1235,7 +1148,7 @@ def compare_vehicles():
 
 @app.route('/api/price', methods=['POST'])
 @require_api_key
-@limiter.limit("20 per minute")  # Reduced limit to prevent data scraping
+@limiter.limit(make_rate_limit("60 per minute", "20 per minute"))
 def get_price():
     """
     Get price information for a specific car at a specific month.
@@ -1362,7 +1275,7 @@ def get_price():
 
 @app.route('/api/default-car', methods=['GET'])
 @require_api_key
-@limiter.limit("60 per minute")
+@limiter.limit(make_rate_limit("120 per minute", "60 per minute"))
 def get_default_car():
     """
     Get the default car to display when the page loads.
@@ -1487,7 +1400,7 @@ def get_default_car():
 
 @app.route('/api/economic-indicators', methods=['POST'])
 @require_api_key
-@limiter.limit("60 per hour")  # Stricter hourly limit - makes external API calls
+@limiter.limit(make_rate_limit("60 per minute", "60 per hour"))
 def get_economic_indicators():
     """
     Get economic indicators (IPCA and CDI) from Banco Central do Brasil API
@@ -1587,7 +1500,7 @@ def get_economic_indicators():
 
 @app.route('/api/depreciation-analysis', methods=['GET'])
 @require_api_key
-@limiter.limit("10 per minute")  # Lower limit due to expensive calculations
+@limiter.limit(make_rate_limit("20 per minute", "10 per minute"))
 def get_depreciation_analysis():
     """
     Get market-wide depreciation analysis by brand, model, and year groups.

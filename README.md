@@ -250,7 +250,6 @@ A aplicação expõe 11 endpoints JSON (requerem autenticação via header `X-AP
 - `GET /api/default-car` - Retorna o veículo padrão (com nomes e IDs)
 
 **Preços e Histórico:**
-- `POST /api/chart-data` - Retorna dados para o gráfico de um único veículo (endpoint legado, ainda funciona)
 - `POST /api/compare-vehicles` - Retorna dados de múltiplos veículos para comparação (até 5 veículos)
 - `POST /api/price` - Retorna preço de um veículo específico em um mês específico
 
