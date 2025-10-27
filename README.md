@@ -8,6 +8,25 @@ Uma aplicação web para visualizar o histórico de preços de veículos da Tabe
 
 ### Versão Atual (Outubro 2025)
 
+**🔒 Melhorias de Segurança**
+- **Content Security Policy (CSP)** implementada com nonce-based script execution para prevenir XSS
+- **Referrer-Policy** configurada para prevenir vazamento de informações
+- **Rate limiting** em todos os endpoints da API
+- **Logging em produção** com rotação automática (10MB × 10 arquivos)
+- **Validação de schema** do banco de dados na inicialização
+- **Health check endpoint** (`/health`) para monitoramento e load balancers
+
+**🔄 Comparação de Múltiplos Veículos**
+- Compare até 5 veículos no mesmo gráfico
+- Cores distintas para cada veículo
+- Estatísticas individuais por veículo
+- Indicadores econômicos (IPCA e CDI) integrados
+
+**📉 Análise de Depreciação**
+- Estatísticas de mercado por marca e ano
+- Visualização de tendências de depreciação
+- Segunda aba dedicada à análise de depreciação
+
 **🌙 Modo Escuro Completo**
 - Toggle entre temas claro/escuro com um clique
 - Persistência de preferência no navegador (localStorage)
@@ -25,23 +44,39 @@ Uma aplicação web para visualizar o histórico de preços de veículos da Tabe
 - Selecione modelo OU ano primeiro - o outro se ajusta automaticamente
 - Navegação mais intuitiva e flexível
 - Reduz cliques desnecessários
+- API otimizada com `/api/vehicle-options` que retorna dados em uma única chamada
 
 ## 📋 Funcionalidades
 
+**Análise e Visualização:**
 - ✅ Seleção de veículos com dropdowns em cascata (Marca → Modelo → Ano)
 - 🔄 **Filtragem inteligente** - Mostra apenas veículos disponíveis na Tabela FIPE mais recente
 - 🔀 **Filtragem bidirecional** - Selecione modelo ou ano primeiro, o outro se ajusta automaticamente
 - 📊 Gráfico interativo com Plotly mostrando evolução de preços
-- 🔄 Comparação de até 5 veículos no mesmo gráfico
+- 🔄 **Comparação de até 5 veículos** no mesmo gráfico com cores distintas
 - 📅 Seleção de período (mês inicial e final)
-- 📈 Estatísticas automáticas por veículo (preço atual, mínimo, máximo, variação)
-- 💹 Indicadores econômicos (IPCA e CDI) para contexto
-- 📊 Visualização em preços absolutos ou indexada (Base 100)
+- 📈 **Estatísticas automáticas** por veículo (preço atual, mínimo, máximo, variação percentual)
+- 💹 **Indicadores econômicos** (IPCA e CDI) integrados ao gráfico para contexto
+- 📊 Visualização em preços absolutos ou **indexada (Base 100)** para comparar variações
+- 📉 **Análise de depreciação** - Estatísticas de mercado por marca e ano
+
+**Interface e Usabilidade:**
 - 🌙 **Modo escuro/claro** - Toggle entre temas com persistência de preferência
-- 🔐 Autenticação com API keys para proteção dos endpoints
 - 🎨 Interface moderna com Bootstrap 5 e design premium
 - 🔄 Atualizações dinâmicas sem recarregar a página
+- 📱 Design responsivo para mobile e desktop
+
+**Segurança e Desempenho:**
+- 🔐 **Autenticação com API keys** para proteção dos endpoints
+- 🛡️ **Content Security Policy (CSP)** com execução nonce-based para prevenir XSS
+- 🚦 **Rate limiting** para prevenir abuso da API
+- 📝 **Logging em produção** com rotação automática
+- 🏥 **Health check endpoint** para monitoramento
+- ✅ **Validação de schema** do banco na inicialização
+
+**Infraestrutura:**
 - 💾 Suporte para SQLite (desenvolvimento) e PostgreSQL (produção)
+- 🔄 Sistema de configuração via variáveis de ambiente (.env)
 
 ## 🗂️ Estrutura do Projeto
 
@@ -206,18 +241,26 @@ DEFAULT_MODEL=Gol  # Busca modelos contendo "Gol"
 
 ## 📡 Endpoints da API
 
-A aplicação expõe os seguintes endpoints JSON (requerem autenticação via header `X-API-Key`):
+A aplicação expõe 11 endpoints JSON (requerem autenticação via header `X-API-Key`, exceto `/` e `/health`):
 
+**Dados de Veículos:**
 - `GET /api/brands` - Lista marcas disponíveis na Tabela FIPE mais recente
-- `GET /api/models/<brand_id>` - Lista modelos de uma marca (filtrados pelo mês mais recente)
-- `GET /api/years/<model_id>` - Lista anos de um modelo (filtrados pelo mês mais recente)
-- `GET /api/vehicle-options/<brand_id>` - Retorna modelos e anos com mapeamento bidirecional
+- `GET /api/vehicle-options/<brand_id>` - Retorna modelos e anos com mapeamento bidirecional para filtragem inteligente
 - `GET /api/months` - Lista todos os meses disponíveis
-- `POST /api/chart-data` - Retorna dados para o gráfico (histórico completo)
-- `POST /api/compare-vehicles` - Retorna dados de múltiplos veículos para comparação
+- `GET /api/default-car` - Retorna o veículo padrão (com nomes e IDs)
+
+**Preços e Histórico:**
+- `POST /api/chart-data` - Retorna dados para o gráfico de um único veículo (endpoint legado, ainda funciona)
+- `POST /api/compare-vehicles` - Retorna dados de múltiplos veículos para comparação (até 5 veículos)
 - `POST /api/price` - Retorna preço de um veículo específico em um mês específico
-- `POST /api/economic-indicators` - Retorna indicadores econômicos (IPCA e CDI)
-- `GET /api/default-car` - Retorna o veículo padrão (filtrado pelo mês mais recente)
+
+**Análise Econômica e de Mercado:**
+- `POST /api/economic-indicators` - Retorna indicadores econômicos (IPCA e CDI) para períodos
+- `POST /api/depreciation-analysis` - Retorna estatísticas de depreciação por marca/ano
+
+**Sistema:**
+- `GET /health` - Endpoint de saúde para monitoramento e load balancers
+- `GET /` - Página principal (sem autenticação)
 
 ### Autenticação
 
@@ -228,6 +271,43 @@ curl -H "X-API-Key: sua-chave-aqui" http://127.0.0.1:5000/api/brands
 ```
 
 O frontend da aplicação automaticamente inclui a chave configurada em `API_KEY`. Para clientes externos, adicione suas chaves em `API_KEYS_ALLOWED` no arquivo `.env`.
+
+## 🔒 Segurança
+
+O aplicativo implementa múltiplas camadas de segurança:
+
+**Content Security Policy (CSP):**
+- Execução de scripts baseada em nonce para prevenir ataques XSS
+- Scripts externos permitidos apenas de CDNs confiáveis
+- Proteção contra injeção de código malicioso
+
+**Autenticação com API Keys:**
+- Todos os endpoints da API (exceto `/` e `/health`) requerem autenticação
+- Chave incluída automaticamente no header `X-API-Key` pelo frontend
+- Suporte para múltiplas chaves para clientes externos
+
+**Rate Limiting:**
+- 200 requisições por dia, 50 por hora por IP (padrão)
+- Endpoints específicos com limites ajustados para uso normal
+- Retorna HTTP 429 quando limite é excedido
+
+**Logging em Produção:**
+- Rotação automática de logs (10MB por arquivo, 10 backups)
+- Logs de acesso com prefixo de chave, endpoint e IP
+- Logs de tentativas de acesso inválidas
+
+**Validação de Schema:**
+- Verifica integridade do banco de dados na inicialização
+- Aplicação recusa iniciar se schema estiver inválido
+
+**Health Check:**
+- Endpoint `/health` para monitoramento e load balancers
+- Verifica conectividade com banco de dados
+- Retorna status detalhado em JSON
+
+**Referrer-Policy:**
+- Previne vazamento de informações em headers HTTP
+- Apenas origem (não URL completa) enviada para sites externos
 
 ## 🐛 Solução de Problemas
 

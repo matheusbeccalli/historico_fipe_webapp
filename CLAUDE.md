@@ -6,6 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This is a Flask web application that displays historical car price data from the Brazilian FIPE (Fundação Instituto de Pesquisas Econômicas) table. The application provides interactive visualizations of vehicle price trends over time using cascading dropdowns and Plotly charts.
 
+**Key Features:**
+- Multi-vehicle comparison (up to 5 vehicles)
+- Economic indicators integration (IPCA, CDI)
+- Market-wide depreciation analysis
+- Dark/light mode theme support
+- Intelligent bidirectional filtering (select model or year first)
+- Security hardening with CSP, API key authentication, and rate limiting
+
 ## Development Tools & Agents
 
 This project is equipped with specialized AI agents and the Serena MCP (Model Context Protocol) to enhance code navigation, analysis, and modification. **Always use these tools** - they are optimized for this codebase and will significantly improve your efficiency.
@@ -284,13 +292,13 @@ All API endpoints follow a consistent pattern:
 
 ### Frontend-Backend Communication
 
-The frontend uses a **cascading dropdown pattern**:
+The frontend uses a **bidirectional filtering pattern** with cascading dropdowns:
 1. Load brands → User selects brand
-2. Fetch models for selected brand → User selects model
-3. Fetch years for selected model → User selects year
-4. POST to `/api/chart-data` with all selections to render chart
+2. Fetch models AND years for selected brand via `/api/vehicle-options/<brand_id>`
+3. User can select model first (filters years) OR year first (filters models)
+4. POST to `/api/compare-vehicles` with all selections to render multi-vehicle comparison chart
 
-This pattern is implemented in `static/js/app.js` and ensures the UI remains responsive with minimal data transfer.
+This pattern is implemented in `static/js/app.js` and ensures the UI remains responsive with minimal data transfer. The `/api/vehicle-options` endpoint returns a `model_year_lookup` object that enables efficient bidirectional filtering on the client side.
 
 ## File Structure and Responsibilities
 
@@ -380,15 +388,30 @@ Follow the existing pattern in app.py:
 
 ### API Endpoints Reference
 
-The application provides 7 RESTful endpoints:
+The application provides 11 RESTful endpoints (all require `X-API-Key` header except `/` and `/health`):
 
-1. **GET /api/brands** - List all brands
-2. **GET /api/models/<brand_id>** - List models for a brand
-3. **GET /api/years/<model_id>** - List years for a model
-4. **GET /api/months** - List all available reference months
-5. **POST /api/chart-data** - Get price history (multiple months) for a vehicle
-6. **POST /api/price** - Get single price point for a vehicle at a specific month (NEW)
-7. **GET /api/default-car** - Get default vehicle selection
+**Vehicle Data:**
+1. **GET /api/brands** - List all brands available in the most recent FIPE table
+2. **GET /api/vehicle-options/<brand_id>** - Get models and years for a brand with bidirectional filtering support
+3. **GET /api/months** - List all available reference months
+4. **GET /api/default-car** - Get default vehicle selection (returns names + IDs)
+
+**Price & History:**
+5. **POST /api/chart-data** - Get price history for a single vehicle (legacy endpoint, still works)
+6. **POST /api/compare-vehicles** - Get price history for multiple vehicles (up to 5)
+7. **POST /api/price** - Get single price point for a vehicle at a specific month
+
+**Economic & Market Analysis:**
+8. **POST /api/economic-indicators** - Get IPCA and CDI data for date ranges
+9. **POST /api/depreciation-analysis** - Get market-wide depreciation statistics by brand/year
+
+**System:**
+10. **GET /health** - Health check endpoint for monitoring and load balancers
+11. **GET /** - Main page (no authentication required)
+
+**Deprecated (Removed):**
+- ~~GET /api/models/<brand_id>~~ - Replaced by `/api/vehicle-options/<brand_id>`
+- ~~GET /api/years/<model_id>~~ - Replaced by `/api/vehicle-options/<brand_id>`
 
 ### Single Price Lookup Endpoint
 
@@ -527,3 +550,82 @@ const response = await fetch('/api/endpoint', {
     }
 });
 ```
+
+## Security Features
+
+The application implements multiple layers of security:
+
+### Content Security Policy (CSP)
+
+**Nonce-based script execution** prevents XSS attacks:
+- All inline scripts require a unique nonce generated per request
+- External scripts whitelisted from trusted CDNs (cdn.plot.ly, cdn.jsdelivr.net)
+- Inline styles allowed for Plotly compatibility (lower XSS risk than scripts)
+
+**CSP Directives** (app.py:592-641):
+```python
+csp_directives = [
+    "default-src 'self'",
+    f"script-src 'self' 'nonce-{nonce}' https://cdn.plot.ly https://cdn.jsdelivr.net",
+    f"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
+    "img-src 'self' data:",
+    "connect-src 'self' https://cdn.plot.ly https://cdn.jsdelivr.net https://api.bcb.gov.br"
+]
+```
+
+**Important**: When adding external resources, update the appropriate CSP directive or they will be blocked by the browser.
+
+### Referrer-Policy Header
+
+**Prevents information leakage** in HTTP headers (app.py:641):
+```python
+response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+```
+
+This ensures that only the origin (not full URL) is sent in the Referer header when navigating to external sites.
+
+### Production Logging
+
+**Log rotation prevents disk exhaustion** (app.py:57-85):
+- RotatingFileHandler with 10MB max per file
+- Keeps 10 backup files (100MB total)
+- Logs stored in `logs/fipe_app.log`
+- Only enabled in production mode (`FLASK_ENV=production`)
+
+### Database Schema Validation
+
+**Ensures database integrity on startup** (app.py:120-158):
+- Validates all 5 required tables exist (brands, car_models, model_years, car_prices, reference_months)
+- Application refuses to start if schema is invalid
+- Logs detailed validation results
+
+### Rate Limiting
+
+**Prevents API abuse** using Flask-Limiter:
+- Default: 200 requests per day, 50 per hour per IP
+- `/api/economic-indicators`: 60 per hour (higher for normal usage)
+- `/health`: 60 per minute (for monitoring systems)
+- Returns 429 Too Many Requests when exceeded
+
+### Health Check Endpoint
+
+**Enables monitoring and load balancer integration** (app.py:688-733):
+```bash
+GET /health
+```
+
+Returns JSON with database connectivity status:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2025-10-27T10:30:00",
+  "service": "fipe-price-tracker",
+  "checks": {
+    "database": "ok",
+    "session": "unknown"
+  }
+}
+```
+
+Returns HTTP 503 if database connection fails.
