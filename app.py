@@ -42,6 +42,14 @@ Config.validate_secret_key()  # Check SECRET_KEY strength
 if hasattr(config_obj, 'validate'):
     config_obj.validate()
 
+# SECURITY: Prevent DEBUG mode in production
+is_production = os.getenv('FLASK_ENV') == 'production'
+if is_production and app.config.get('DEBUG'):
+    raise RuntimeError(
+        "FATAL: DEBUG mode is enabled in production! "
+        "Set FLASK_ENV=production and DEBUG=False in your configuration."
+    )
+
 # Create database engine and session factory
 engine = create_engine(app.config['DATABASE_URL'])
 SessionLocal = sessionmaker(bind=engine)
@@ -1232,7 +1240,9 @@ def get_price():
 
             # Only include search details in development for debugging
             # In production, this would leak information about valid brands/models
-            if app.config.get('DEBUG'):
+            # SECURITY: Double-check environment to prevent accidental DEBUG=True in production
+            is_dev = app.config.get('DEBUG') and os.getenv('FLASK_ENV') != 'production'
+            if is_dev:
                 error_response["searched_for"] = {
                     "brand": brand_name,
                     "model": model_name,
