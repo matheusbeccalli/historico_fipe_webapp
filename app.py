@@ -18,10 +18,13 @@ from datetime import datetime, timedelta
 import hashlib
 import hmac
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 import os
 import requests
 import secrets
 from functools import reduce, wraps, lru_cache
+from pathlib import Path
 
 # Import our database models and config
 from webapp_database_models import (
@@ -50,6 +53,36 @@ if is_production and app.config.get('DEBUG'):
         "FATAL: DEBUG mode is enabled in production! "
         "Set FLASK_ENV=production and DEBUG=False in your configuration."
     )
+
+# Configure production logging with rotation
+if is_production:
+    # Create logs directory if it doesn't exist
+    logs_dir = Path(__file__).parent / 'logs'
+    logs_dir.mkdir(exist_ok=True)
+
+    # Configure rotating file handler
+    # Rotates when file reaches 10MB, keeps 10 backup files (100MB total)
+    file_handler = RotatingFileHandler(
+        logs_dir / 'fipe_app.log',
+        maxBytes=10 * 1024 * 1024,  # 10MB
+        backupCount=10
+    )
+
+    # Set log format with timestamp, level, and message
+    file_handler.setFormatter(logging.Formatter(
+        '[%(asctime)s] %(levelname)s in %(module)s: %(message)s'
+    ))
+
+    # Set logging level (INFO captures most important events without spam)
+    file_handler.setLevel(logging.INFO)
+    app.logger.addHandler(file_handler)
+    app.logger.setLevel(logging.INFO)
+
+    app.logger.info('Production logging configured: rotating file handler (10MB, 10 backups)')
+else:
+    # Development: Use console logging only
+    app.logger.setLevel(logging.DEBUG)
+    app.logger.info('Development logging: console only')
 
 # Create database engine and session factory with connection pooling
 # Configure pool settings based on database type (PostgreSQL vs SQLite)
