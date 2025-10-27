@@ -1926,12 +1926,15 @@ function initEventListeners() {
     });
 
     // Model selection change - filter years based on selected model
+    console.log('[DOMContentLoaded] Attaching modelSelect change listener');
     document.getElementById('modelSelect').addEventListener('change', async (e) => {
+        console.log('[modelSelect.change] Event fired! Model changed to:', e.target.value);
         const modelId = e.target.value;
         const yearSelect = document.getElementById('yearSelect');
 
         if (modelId) {
             // Filter years to show only those available for this model
+            console.log('[modelSelect.change] Calling filterYearsByModel with:', modelId);
             filterYearsByModel(modelId);
 
             // If both model and year are selected, load months for that specific vehicle
