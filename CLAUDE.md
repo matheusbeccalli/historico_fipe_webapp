@@ -146,7 +146,7 @@ Assistant: "Let me use the debug-specialist agent to investigate this error."
 ```
 
 #### 4. 🎯 feature-implementation-planner
-**When to use:** Planning implementation of features from "Melhorias Futuras" in README.md
+**When to use:** Planning implementation of features from the project roadmap
 
 **Capabilities:**
 - Deep feature analysis and requirements breakdown
@@ -160,6 +160,10 @@ Assistant: "Let me use the debug-specialist agent to investigate this error."
 - Breaking down complex features into steps
 - Understanding dependencies between features
 - Creating implementation checklists
+
+**Roadmap Location:**
+- **Active development**: Linear project "FIPE Webapp" (https://linear.app/matheusbeccalli/project/fipe-webapp-4eddfec3d2e9)
+- **Feature ideas**: "Melhorias Futuras" section in README.md (for reference and community visibility)
 
 **Example:**
 ```
