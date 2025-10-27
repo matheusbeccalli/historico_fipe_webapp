@@ -5,10 +5,11 @@ This webapp displays historical car price data from the FIPE database.
 It uses cascading dropdowns and Plotly charts for interactive visualization.
 """
 
-from flask import Flask, render_template, jsonify, request, session
+from flask import Flask, render_template, jsonify, request, session, g
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, validate_csrf
+from wtforms import ValidationError
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, DatabaseError
@@ -18,6 +19,7 @@ import hmac
 import json
 import os
 import requests
+import secrets
 from functools import reduce, wraps, lru_cache
 
 # Import our database models and config
@@ -300,14 +302,30 @@ def require_api_key(f):
 
     Authentication methods (checked in order):
     1. Session-based auth (for web browsers) - checks for 'authenticated' in session
+       - Also validates CSRF token for state-changing methods (POST, PUT, DELETE, PATCH)
     2. API key auth (for external clients) - checks X-API-Key header
+       - No CSRF validation needed as API keys are not vulnerable to CSRF
 
     Returns 401 Unauthorized if neither authentication method succeeds.
+    Returns 403 Forbidden if CSRF validation fails.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         # Check for session-based authentication first (web browsers)
         if session.get('authenticated'):
+            # Validate CSRF token for state-changing methods
+            if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
+                try:
+                    # Get CSRF token from header or form data
+                    csrf_token = request.headers.get('X-CSRFToken') or request.form.get('csrf_token')
+                    validate_csrf(csrf_token)
+                except ValidationError:
+                    app.logger.warning(f'CSRF validation failed from {request.remote_addr} for {request.path}')
+                    return jsonify({
+                        'error': 'CSRF validation failed',
+                        'message': 'Invalid or missing CSRF token'
+                    }), 403
+            
             # Validate session hasn't expired
             created_at = session.get('created_at')
             if created_at:
@@ -388,7 +406,8 @@ def require_api_key(f):
         )
 
         if not is_valid:
-            app.logger.warning(f'Invalid API key attempt: {api_key[:8]}... from {request.remote_addr} accessing {request.path}')
+            # SECURITY: Hash the invalid key instead of logging partial plaintext
+            app.logger.warning(f'Invalid API key attempt: key_hash={hash_api_key(api_key)} from {request.remote_addr} accessing {request.path}')
             return jsonify({
                 'error': 'Invalid API key',
                 'message': 'The provided API key is not valid'
@@ -451,7 +470,7 @@ def set_security_headers(response):
     - X-Frame-Options: Prevents clickjacking
     - X-XSS-Protection: Enables browser XSS filter
     - Strict-Transport-Security: Enforces HTTPS (production only)
-    - Content-Security-Policy: Controls resource loading
+    - Content-Security-Policy: Controls resource loading with nonce-based script execution
     """
     # Prevent MIME type sniffing
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -466,11 +485,19 @@ def set_security_headers(response):
     if not app.config.get('DEBUG'):
         response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
 
+    # Generate a random nonce for this request (stored in g for template access)
+    # This allows specific inline scripts while blocking all others
+    nonce = getattr(g, 'csp_nonce', None)
+    if not nonce:
+        nonce = secrets.token_urlsafe(16)
+        g.csp_nonce = nonce
+
     # Content Security Policy - controls what resources can be loaded
+    # SECURITY: Removed 'unsafe-inline' and using nonce-based script execution
     csp_directives = [
         "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://cdn.plot.ly https://cdn.jsdelivr.net",
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+        f"script-src 'self' 'nonce-{nonce}' https://cdn.plot.ly https://cdn.jsdelivr.net",
+        f"style-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
         "img-src 'self' data:",
         "connect-src 'self' https://api.bcb.gov.br"
@@ -496,6 +523,10 @@ def index():
     This route establishes an authenticated session for the web browser,
     eliminating the need to expose API keys in the HTML source code.
     """
+    # Generate CSP nonce for this request (needed before rendering template)
+    if not hasattr(g, 'csp_nonce'):
+        g.csp_nonce = secrets.token_urlsafe(16)
+    
     # Regenerate session ID on authentication to prevent session fixation
     if not session.get('authenticated'):
         # Clear any existing session data (prevents session fixation attack)
