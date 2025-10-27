@@ -664,79 +664,6 @@ function filterModelsByYear(yearDesc) {
 }
 
 /**
- * Legacy function - kept for backwards compatibility with default car loading
- * Loads models for a specific brand (old API)
- */
-async function loadModels(brandId) {
-    // This function is deprecated in favor of loadVehicleOptions
-    // but kept for potential legacy code or default car loading
-    try {
-        const response = await fetch(`/api/models/${brandId}`, {
-            headers: {
-                'X-API-Key': window.API_KEY
-            },
-            credentials: 'same-origin'
-        });
-        const models = await response.json();
-
-        const modelSelect = document.getElementById('modelSelect');
-        modelSelect.innerHTML = '<option value="">Selecione um modelo</option>';
-        modelSelect.disabled = false;
-
-        models.forEach(model => {
-            const option = document.createElement('option');
-            option.value = model.id;
-            option.textContent = model.name;
-            modelSelect.appendChild(option);
-        });
-
-        // Reset year dropdown
-        const yearSelect = document.getElementById('yearSelect');
-        yearSelect.innerHTML = '<option value="">Selecione um ano/combustível</option>';
-        yearSelect.disabled = true;
-
-        return models;
-    } catch (error) {
-        console.error('Error loading models:', error);
-        showError('Erro ao carregar modelos');
-    }
-}
-
-/**
- * Legacy function - kept for backwards compatibility with default car loading
- * Loads years for a specific model (old API)
- */
-async function loadYears(modelId) {
-    // This function is deprecated in favor of loadVehicleOptions
-    // but kept for potential legacy code or default car loading
-    try {
-        const response = await fetch(`/api/years/${modelId}`, {
-            headers: {
-                'X-API-Key': window.API_KEY
-            },
-            credentials: 'same-origin'
-        });
-        const years = await response.json();
-
-        const yearSelect = document.getElementById('yearSelect');
-        yearSelect.innerHTML = '<option value="">Selecione um ano</option>';
-        yearSelect.disabled = false;
-
-        years.forEach(year => {
-            const option = document.createElement('option');
-            option.value = year.id;
-            option.textContent = year.description;
-            yearSelect.appendChild(option);
-        });
-
-        return years;
-    } catch (error) {
-        console.error('Error loading years:', error);
-        showError('Erro ao carregar anos');
-    }
-}
-
-/**
  * Load available months from the database
  *
  * @param {number|null} yearId - Optional year_id to filter months for a specific vehicle
@@ -879,20 +806,6 @@ function displayComparisonInfo() {
     const count = selectedVehicles.length;
     titleSpan.textContent = `Comparando ${count} ${count === 1 ? 'veículo' : 'veículos'}`;
     detailsP.textContent = selectedVehicles.map(v => `${v.brand} ${v.model} (${formatYearDescription(v.year)})`).join(' • ');
-
-    carInfoDiv.classList.remove('d-none');
-}
-
-/**
- * Display car information banner (legacy - for single vehicle)
- */
-function displayCarInfo(carInfo) {
-    const carInfoDiv = document.getElementById('carInfo');
-    const titleSpan = document.getElementById('carInfoTitle');
-    const detailsP = document.getElementById('carInfoDetails');
-
-    titleSpan.textContent = `${carInfo.brand} ${carInfo.model}`;
-    detailsP.textContent = `Ano/Combustível: ${formatYearDescription(carInfo.year)}`;
 
     carInfoDiv.classList.remove('d-none');
 }
