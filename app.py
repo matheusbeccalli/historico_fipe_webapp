@@ -630,7 +630,7 @@ def set_security_headers(response):
         f"style-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
         "img-src 'self' data:",
-        "connect-src 'self' https://api.bcb.gov.br"
+        "connect-src 'self' https://cdn.plot.ly https://cdn.jsdelivr.net https://api.bcb.gov.br"
     ]
     response.headers['Content-Security-Policy'] = '; '.join(csp_directives)
 
