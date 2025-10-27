@@ -13,6 +13,7 @@ from wtforms import ValidationError
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, DatabaseError
+from sqlalchemy.pool import QueuePool
 from datetime import datetime, timedelta
 import hashlib
 import hmac
@@ -50,8 +51,37 @@ if is_production and app.config.get('DEBUG'):
         "Set FLASK_ENV=production and DEBUG=False in your configuration."
     )
 
-# Create database engine and session factory
-engine = create_engine(app.config['DATABASE_URL'])
+# Create database engine and session factory with connection pooling
+# Configure pool settings based on database type (PostgreSQL vs SQLite)
+is_postgres = app.config['DATABASE_URL'].startswith('postgresql')
+
+if is_postgres:
+    # PostgreSQL: Configure larger pool for production
+    engine = create_engine(
+        app.config['DATABASE_URL'],
+        echo=app.config.get('SQLALCHEMY_ECHO', False),
+        poolclass=QueuePool,
+        pool_size=20,              # Number of connections to maintain
+        max_overflow=40,           # Additional connections beyond pool_size
+        pool_timeout=30,           # Seconds to wait for connection
+        pool_recycle=1800,         # Recycle connections after 30 minutes
+        pool_pre_ping=True         # Test connections before using
+    )
+    app.logger.info(f"PostgreSQL connection pool: size=20, max_overflow=40")
+else:
+    # SQLite: Smaller pool (SQLite doesn't benefit from large pools)
+    engine = create_engine(
+        app.config['DATABASE_URL'],
+        echo=app.config.get('SQLALCHEMY_ECHO', False),
+        poolclass=QueuePool,
+        pool_size=5,               # Smaller pool for SQLite
+        max_overflow=10,           # Limited overflow
+        pool_timeout=30,
+        pool_recycle=3600,         # Recycle after 1 hour
+        pool_pre_ping=True
+    )
+    app.logger.info(f"SQLite connection pool: size=5, max_overflow=10")
+
 SessionLocal = sessionmaker(bind=engine)
 
 # Parse allowed API keys from config and store as a set for fast lookup
