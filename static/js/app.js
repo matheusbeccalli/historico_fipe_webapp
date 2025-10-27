@@ -535,6 +535,9 @@ function clearStatistics() {
 async function loadBrands() {
     try {
         const response = await fetch('/api/brands', {
+            headers: {
+                'X-API-Key': window.API_KEY
+            },
             credentials: 'same-origin'
         });
         const brands = await response.json();
@@ -563,8 +566,16 @@ async function loadBrands() {
 async function loadVehicleOptions(brandId) {
     try {
         const response = await fetch(`/api/vehicle-options/${brandId}`, {
+            headers: {
+                'X-API-Key': window.API_KEY
+            },
             credentials: 'same-origin'
         });
+
+        if (!response.ok) {
+            throw new Error(`Failed to load vehicle options: ${response.status} ${response.statusText}`);
+        }
+
         vehicleOptions = await response.json();
 
         // Populate both dropdowns with all options
@@ -689,6 +700,9 @@ async function loadModels(brandId) {
     // but kept for potential legacy code or default car loading
     try {
         const response = await fetch(`/api/models/${brandId}`, {
+            headers: {
+                'X-API-Key': window.API_KEY
+            },
             credentials: 'same-origin'
         });
         const models = await response.json();
@@ -725,6 +739,9 @@ async function loadYears(modelId) {
     // but kept for potential legacy code or default car loading
     try {
         const response = await fetch(`/api/years/${modelId}`, {
+            headers: {
+                'X-API-Key': window.API_KEY
+            },
             credentials: 'same-origin'
         });
         const years = await response.json();
@@ -1529,6 +1546,9 @@ function updateStatistics(data) {
 async function loadDefaultVehicle() {
     try {
         const response = await fetch('/api/default-car', {
+            headers: {
+                'X-API-Key': window.API_KEY
+            },
             credentials: 'same-origin'
         });
         const defaultCar = await response.json();
