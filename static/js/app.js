@@ -1561,13 +1561,13 @@ async function loadDefaultVehicle() {
         const brandSelect = document.getElementById('brandSelect');
         brandSelect.value = defaultCar.brand_id;
 
-        // Load and select the model
-        await loadModels(defaultCar.brand_id);
+        // Load vehicle options for bidirectional filtering
+        await loadVehicleOptions(defaultCar.brand_id);
+
+        // Select the model and year
         const modelSelect = document.getElementById('modelSelect');
         modelSelect.value = defaultCar.model_id;
 
-        // Load and select the year
-        await loadYears(defaultCar.model_id);
         const yearSelect = document.getElementById('yearSelect');
         yearSelect.value = defaultCar.year_id;
 
