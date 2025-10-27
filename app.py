@@ -686,6 +686,56 @@ def index():
     )
 
 
+@app.route('/health')
+@limiter.limit("60 per minute")  # Higher limit for health checks
+def health():
+    """
+    Health check endpoint for monitoring and load balancers.
+
+    Returns JSON with service status and basic diagnostics.
+    Does NOT require API key authentication.
+
+    Returns:
+        200: Service is healthy
+        503: Service is unhealthy (database connection failed)
+    """
+    from sqlalchemy import text
+    
+    health_status = {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'service': 'fipe-price-tracker',
+        'checks': {
+            'database': 'unknown',
+            'session': 'unknown'
+        }
+    }
+
+    # Check database connectivity
+    db = None
+    try:
+        db = get_db()
+        # Simple query to test database connectivity (SQLAlchemy 2.0 requires text())
+        db.execute(text('SELECT 1')).fetchone()
+        health_status['checks']['database'] = 'ok'
+    except Exception as e:
+        app.logger.error(f'Health check database error: {str(e)}')
+        health_status['status'] = 'unhealthy'
+        health_status['checks']['database'] = 'failed'
+        return jsonify(health_status), 503
+    finally:
+        if db:
+            db.close()
+
+    # Check session system (verify SECRET_KEY is set)
+    if app.config.get('SECRET_KEY'):
+        health_status['checks']['session'] = 'ok'
+    else:
+        health_status['checks']['session'] = 'warning'
+
+    return jsonify(health_status), 200
+
+
 # ============================================================================
 # API ROUTES - Data Endpoints
 # ============================================================================
