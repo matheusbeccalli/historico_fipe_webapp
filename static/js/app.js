@@ -1569,6 +1569,306 @@ async function initializeApp() {
     }
 }
 
+// ============================================================================
+// DEPRECIATION ANALYSIS FUNCTIONS
+// ============================================================================
+
+/**
+ * Load depreciation analysis from API
+ */
+async function loadDepreciationAnalysis() {
+    try {
+        const response = await fetch('/api/depreciation-analysis?months=12', {
+            headers: {
+                'X-API-Key': window.API_KEY
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Render the analysis
+        renderDepreciationAnalysis(data);
+
+    } catch (error) {
+        console.error('Error loading depreciation analysis:', error);
+        document.getElementById('depreciationAnalysis').innerHTML = `
+            <div class="alert alert-danger">
+                Erro ao carregar análise de depreciação. Tente novamente mais tarde.
+            </div>
+        `;
+    }
+}
+
+/**
+ * Render depreciation analysis UI
+ */
+function renderDepreciationAnalysis(data) {
+    const container = document.getElementById('depreciationAnalysis');
+
+    if (!container) {
+        console.warn('Depreciation analysis container not found');
+        return;
+    }
+
+    // Create tabs for different views
+    const html = `
+        <div class="depreciation-analysis-section">
+            <h4>Análise de Mercado - Depreciação</h4>
+            <p class="text-muted small">
+                Período de análise: ${data.analysis_period.months} meses
+                (${formatDatePortuguese(data.analysis_period.start_date)} até ${formatDatePortuguese(data.analysis_period.end_date)})
+            </p>
+
+            <!-- Sub-tabs for different analysis views -->
+            <ul class="nav nav-pills mb-3" id="analysisTypeTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="brands-tab" data-bs-toggle="pill"
+                            data-bs-target="#brandsAnalysis" type="button" role="tab">
+                        Por Marca
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="years-tab" data-bs-toggle="pill"
+                            data-bs-target="#yearsAnalysis" type="button" role="tab">
+                        Por Ano
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="analysisTypeContent">
+                <!-- Brands Analysis Tab -->
+                <div class="tab-pane fade show active" id="brandsAnalysis" role="tabpanel">
+                    ${renderBrandsAnalysis(data.brands)}
+                </div>
+
+                <!-- Year Groups Analysis Tab -->
+                <div class="tab-pane fade" id="yearsAnalysis" role="tabpanel">
+                    ${renderYearGroupsAnalysis(data.year_groups)}
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+/**
+ * Render brands analysis (top/bottom performers)
+ */
+function renderBrandsAnalysis(brands) {
+    if (!brands || brands.length === 0) {
+        return '<p class="text-muted">Dados insuficientes para análise por marca.</p>';
+    }
+
+    // Sort by depreciation rate (best retention first)
+    const sortedBrands = [...brands].sort((a, b) =>
+        b.avg_depreciation_rate - a.avg_depreciation_rate
+    );
+
+    // Get top 5 and bottom 5
+    const topBrands = sortedBrands.slice(0, Math.min(5, sortedBrands.length));
+    const bottomBrands = sortedBrands.slice(-Math.min(5, sortedBrands.length)).reverse();
+
+    return `
+        <div class="row">
+            <div class="col-md-6">
+                <h5 class="text-success">
+                    <i class="bi bi-trophy"></i> Melhor Retenção de Valor
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover depreciation-table">
+                        <thead>
+                            <tr>
+                                <th>Marca</th>
+                                <th class="text-end">Taxa Anual</th>
+                                <th class="text-end">Retenção</th>
+                                <th class="text-end">Modelos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${topBrands.map((brand, index) => {
+                                // Positive = appreciation (good) = green
+                                // Negative = depreciation (bad) = red
+                                const rateColor = brand.avg_depreciation_rate >= 0 ? 'success' : 'danger';
+                                return `
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-${rateColor} me-1">${index + 1}</span>
+                                        ${brand.brand_name}
+                                    </td>
+                                    <td class="text-end text-${rateColor}">
+                                        ${formatPercentage(brand.avg_depreciation_rate)}/ano
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="progress" style="height: 20px; min-width: 60px;">
+                                            <div class="progress-bar bg-${rateColor}" role="progressbar"
+                                                 style="width: ${brand.value_retention}%"
+                                                 aria-valuenow="${brand.value_retention}"
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                ${brand.value_retention.toFixed(1)}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end text-muted">${brand.sample_size}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <h5 class="text-danger">
+                    <i class="bi bi-arrow-down-circle"></i> Maior Depreciação
+                </h5>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover depreciation-table">
+                        <thead>
+                            <tr>
+                                <th>Marca</th>
+                                <th class="text-end">Taxa Anual</th>
+                                <th class="text-end">Retenção</th>
+                                <th class="text-end">Modelos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${bottomBrands.map((brand, index) => {
+                                // Positive = appreciation (good) = green
+                                // Negative = depreciation (bad) = red
+                                const rateColor = brand.avg_depreciation_rate >= 0 ? 'success' : 'danger';
+                                return `
+                                <tr>
+                                    <td>
+                                        <span class="badge bg-${rateColor} me-1">${index + 1}</span>
+                                        ${brand.brand_name}
+                                    </td>
+                                    <td class="text-end text-${rateColor}">
+                                        ${formatPercentage(brand.avg_depreciation_rate)}/ano
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="progress" style="height: 20px; min-width: 60px;">
+                                            <div class="progress-bar bg-${rateColor}" role="progressbar"
+                                                 style="width: ${brand.value_retention}%"
+                                                 aria-valuenow="${brand.value_retention}"
+                                                 aria-valuemin="0" aria-valuemax="100">
+                                                ${brand.value_retention.toFixed(1)}%
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end text-muted">${brand.sample_size}</td>
+                                </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle"></i>
+            <strong>Interpretação:</strong>
+            <span class="text-success">Valores positivos (ex: +1,5%)</span> indicam <strong>valorização</strong> do veículo.
+            <span class="text-danger">Valores negativos (ex: -4,2%)</span> indicam <strong>depreciação</strong> (desvalorização).
+            A retenção mostra o percentual do valor original mantido após o período analisado.
+        </div>
+    `;
+}
+
+/**
+ * Render year groups analysis
+ */
+function renderYearGroupsAnalysis(yearGroups) {
+    if (!yearGroups || yearGroups.length === 0) {
+        return '<p class="text-muted">Dados insuficientes para análise por faixa de ano.</p>';
+    }
+
+    return `
+        <div class="table-responsive">
+            <table class="table table-hover depreciation-table">
+                <thead>
+                    <tr>
+                        <th>Faixa de Ano</th>
+                        <th class="text-end">Taxa de Depreciação Anual</th>
+                        <th class="text-end">Retenção de Valor</th>
+                        <th class="text-end">Veículos Analisados</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${yearGroups.map(group => {
+                        // Color code based on depreciation rate
+                        // Positive (>= 0) = appreciation = green
+                        // Slightly negative (>= -5) = mild depreciation = warning
+                        // Very negative (< -5) = strong depreciation = red
+                        const rateClass = group.avg_depreciation_rate >= 0 ? 'success' :
+                                        group.avg_depreciation_rate >= -5 ? 'warning' : 'danger';
+
+                        return `
+                            <tr>
+                                <td>
+                                    <strong>${group.year_range}</strong>
+                                    ${group.year_range === '2020-2024' ? '<span class="badge bg-primary ms-2">Mais Novos</span>' : ''}
+                                    ${group.year_range === '<2005' ? '<span class="badge bg-secondary ms-2">Antigos</span>' : ''}
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-${rateClass}">
+                                        ${formatPercentage(group.avg_depreciation_rate)}/ano
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="progress" style="height: 25px; min-width: 100px;">
+                                        <div class="progress-bar bg-${rateClass}" role="progressbar"
+                                             style="width: ${group.value_retention}%"
+                                             aria-valuenow="${group.value_retention}"
+                                             aria-valuemin="0" aria-valuemax="100">
+                                            ${group.value_retention.toFixed(1)}%
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end text-muted">${group.sample_size}</td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle"></i>
+            <strong>Interpretação:</strong>
+            <span class="text-success">Verde = valorização</span> ou baixa depreciação.
+            <span class="text-warning">Amarelo = depreciação moderada</span> (até -5%/ano).
+            <span class="text-danger">Vermelho = depreciação alta</span> (acima de -5%/ano).
+            Veículos mais novos geralmente depreciam mais rápido nos primeiros anos.
+        </div>
+    `;
+}
+
+/**
+ * Format percentage for Brazilian locale
+ */
+function formatPercentage(value) {
+    // Brazilian format: use comma as decimal separator
+    return value.toFixed(1).replace('.', ',') + '%';
+}
+
+/**
+ * Format date in Portuguese
+ */
+function formatDatePortuguese(dateStr) {
+    const date = new Date(dateStr);
+    const months = [
+        'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+        'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+    ];
+    return `${months[date.getMonth()]}/${date.getFullYear()}`;
+}
+
 /**
  * Initialize event listeners
  */
@@ -1675,6 +1975,18 @@ function initEventListeners() {
             }
         });
     });
+
+    // Load depreciation analysis when Depreciação tab is shown
+    const analiseTab = document.getElementById('analise-tab');
+    if (analiseTab) {
+        analiseTab.addEventListener('shown.bs.tab', () => {
+            // Only load once
+            if (!analiseTab.dataset.loaded) {
+                loadDepreciationAnalysis();
+                analiseTab.dataset.loaded = 'true';
+            }
+        });
+    }
 }
 
 /**
