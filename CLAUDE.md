@@ -159,60 +159,6 @@ User: "Let's implement the vehicle comparison feature"
 Assistant: "I'll use the feature-implementation-planner agent to create a detailed plan."
 ```
 
-### Context7 MCP - Library Documentation
-
-**Context7 provides up-to-date library documentation and code examples** directly from official sources. This is the **automatic go-to tool** for any library-related tasks.
-
-**Key capabilities:**
-- **Library resolution**: Resolves package names to Context7-compatible library IDs
-- **Documentation retrieval**: Fetches current docs, API references, and code examples
-- **Version-specific docs**: Can retrieve documentation for specific library versions
-- **Topic-focused search**: Narrow documentation to specific topics (e.g., 'hooks', 'routing')
-
-**When to use Context7 MCP:**
-- ✅ **ALWAYS** use automatically when working with external libraries (Flask, SQLAlchemy, Plotly, etc.)
-- ✅ Code generation involving library APIs
-- ✅ Setup or configuration steps for libraries
-- ✅ Understanding library features, methods, or best practices
-- ✅ Troubleshooting library-specific issues
-- ✅ Learning how to use unfamiliar library features
-
-**Example workflow:**
-```python
-# 1. Resolve library name to ID
-mcp__context7__resolve-library-id(libraryName="flask")
-# Returns: "/pallets/flask"
-
-# 2. Get library documentation
-mcp__context7__get-library-docs(
-    context7CompatibleLibraryID="/pallets/flask",
-    topic="blueprints"  # Optional: focus on specific topic
-)
-# Returns: Documentation with code examples
-
-# 3. Use for specific version (if needed)
-mcp__context7__get-library-docs(
-    context7CompatibleLibraryID="/pallets/flask/v2.3.0"
-)
-```
-
-**Libraries commonly used in this project:**
-- **Flask** (`/pallets/flask`) - Web framework, routing, sessions
-- **SQLAlchemy** (`/sqlalchemy/sqlalchemy`) - ORM, database queries
-- **Plotly** - Interactive charts and visualizations
-- **python-dotenv** - Environment variable management
-
-**Important notes:**
-- Context7 is used **proactively** - you don't need explicit permission to fetch docs
-- Always use Context7 when implementing features with library-specific APIs
-- Prefer Context7 over web search for library documentation (more reliable and current)
-- For user-provided library IDs (format: `/org/project` or `/org/project/version`), skip the resolve step
-
-**Integration with workflow:**
-- When planning features with `feature-implementation-planner`, use Context7 for library research
-- When implementing code, fetch relevant docs before writing library-specific code
-- When debugging with `debug-specialist`, use Context7 to verify correct API usage
-- When reviewing with `code-reviewer`, Context7 can validate against current best practices
 
 ### Best Practices for Tool Usage
 
@@ -234,12 +180,11 @@ mcp__context7__get-library-docs(
 
 **General workflow:**
 1. **Plan** → Use feature-implementation-planner for new features
-2. **Research** → Use Context7 MCP for library documentation and API references
-3. **Navigate** → Use Serena MCP for code exploration
-4. **Implement** → Use Serena's symbol editing for changes + Context7 for library APIs
-5. **Review** → Use code-reviewer agent for quality assurance
-6. **Debug** → Use debug-specialist agent if issues arise
-7. **Analyze** → Use data-analyst-sql for insights and optimization
+2. **Navigate** → Use Serena MCP for code exploration
+3. **Implement** → Use Serena's symbol editing for changes
+4. **Review** → Use code-reviewer agent for quality assurance
+5. **Debug** → Use debug-specialist agent if issues arise
+6. **Analyze** → Use data-analyst-sql for insights and optimization
 
 ## Key Commands
 
