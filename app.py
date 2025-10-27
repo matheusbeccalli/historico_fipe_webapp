@@ -1589,7 +1589,7 @@ def get_default_car():
 
 @app.route('/api/economic-indicators', methods=['POST'])
 @require_api_key
-@limiter.limit("20 per hour")  # Very strict hourly limit - makes external API calls
+@limiter.limit("60 per hour")  # Stricter hourly limit - makes external API calls
 def get_economic_indicators():
     """
     Get economic indicators (IPCA and CDI) from Banco Central do Brasil API
