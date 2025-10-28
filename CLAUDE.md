@@ -175,7 +175,7 @@ Assistant: "I'll use the feature-implementation-planner agent to create a detail
 **When to use:** For end-to-end testing, UI validation, and browser automation
 
 **Capabilities:**
-- Browser automation using Puppeteer MCP
+- Browser automation using Playwright MCP
 - User interface functionality testing
 - API integration validation
 - Visual regression testing (screenshots)
