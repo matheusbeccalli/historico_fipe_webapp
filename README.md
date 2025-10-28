@@ -355,63 +355,30 @@ pip install -r requirements.txt
 
 ## 🔜 Melhorias Futuras
 
+> **📋 Gestão de Features:** O desenvolvimento ativo de novas funcionalidades é gerenciado no [Linear Project "FIPE Webapp"](https://linear.app/matheusbeccalli/project/fipe-webapp-4eddfec3d2e9). Esta seção é mantida sincronizada com as issues prioritárias do Linear para transparência e visibilidade da comunidade.
+
 ### 🎯 Prioridades (Quick Wins)
-- [ ] **Sugestões de veículos similares** - Ajudar a descobrir alternativas
+- [ ] **[MAT-5](https://linear.app/matheusbeccalli/issue/MAT-5)** 🎯 Sugestões de veículos similares - Sistema inteligente para descobrir alternativas baseadas em faixa de preço, marca e segmento
 
 ### 📊 Análise de Dados & Insights
-- [ ] **Dashboard de tendências de mercado** - Quais marcas/segmentos estão valorizando
-- [ ] **Análise de depreciação** - Taxa média por marca/modelo/ano
-- [ ] **Detector de anomalias** - Carros que estão valorizando inesperadamente
-- [ ] **Previsão de valores** - Regressão linear para estimar preços futuros
-- [ ] **Análise sazonal** - Melhores/piores meses para comprar/vender
-- [ ] **Comparação "Real vs Nominal"** - Valorização real ajustada por inflação
-
-### 🔍 Ferramentas de Comparação
-- [ ] **Análise de segmentos** - Comparar categorias inteiras (SUVs, sedãs, hatches)
-- [ ] **Prêmio de marca** - Quanto a mais cada marca cobra vs média do mercado
-- [ ] **Comparação por tipo de combustível** - Evolução de preços gasolina vs flex vs diesel
-- [ ] **Veículos concorrentes** - Sugestões automáticas baseadas em faixa de preço/categoria
+- [ ] **[MAT-6](https://linear.app/matheusbeccalli/issue/MAT-6)** 📊 Dashboard de tendências de mercado - Ranking de marcas por valorização e segmentos em alta/baixa
+- [ ] **[MAT-7](https://linear.app/matheusbeccalli/issue/MAT-7)** 🚨 Detector de anomalias - Identificar veículos com valorização atípica e oportunidades de investimento
 
 ### 💡 Visualizações Avançadas
-- [ ] **Scatter plots** - Preço vs idade, correlações diversas
-- [ ] **Heatmaps** - Melhores meses para comprar por marca/modelo
-- [ ] **Gráficos de distribuição** - Faixas de preço por categoria
-- [ ] **Anotações em gráficos** - Marcar eventos importantes (crise dos chips, etc.)
-- [ ] **Tabela de dados** - Exibir dados tabulares abaixo dos gráficos
-
-### 🎯 Recursos para Usuários
-- [ ] **Watchlist & Alertas** - Salvar veículos favoritos e receber notificações
-- [ ] **Portfolio tracker** - Acompanhar valor dos seus veículos ao longo do tempo
-- [ ] **Calculadora de financiamento** - Com depreciação integrada
-- [ ] **Otimizador "quando vender"** - Sugerir melhor momento de venda
-- [ ] **Custo total de propriedade** - Estimativa incluindo depreciação
+- [ ] **[MAT-15](https://linear.app/matheusbeccalli/issue/MAT-15)** 📊 Scatter plots - Preço vs idade com linha de tendência e identificação de outliers
+- [ ] **[MAT-17](https://linear.app/matheusbeccalli/issue/MAT-17)** 📈 Gráficos de distribuição - Histogramas e box plots mostrando faixas de preço por categoria
+- [ ] **[MAT-18](https://linear.app/matheusbeccalli/issue/MAT-18)** 📝 Anotações em gráficos - Marcar eventos importantes do mercado (crise dos chips, mudanças regulatórias)
 
 ### 🚗 Para Entusiastas de Carros
-- [ ] **Tracker de carros clássicos** - Seção especial para veículos valorizando
-- [ ] **Potencial de investimento** - Score para carros entrando em "classic territory"
-- [ ] **Integração com dados de performance** - HP, 0-100, consumo vs preço
-- [ ] **Análise preço por HP** - Value proposition comparisons
-- [ ] **Impacto de quilometragem** - Como km rodados afetam depreciação
+- [ ] **[MAT-24](https://linear.app/matheusbeccalli/issue/MAT-24)** 🏎️ Tracker de carros clássicos - Seção dedicada a veículos com 20+ anos em valorização
 
 ### 🎨 UI/UX
-- [ ] **Filtros rápidos** - Por combustível, faixa de preço, ano, segmento
-- [ ] **Otimização mobile** - Touch gestures, swipe entre veículos
-- [ ] **Busca avançada** - Por código FIPE, busca full-text
-- [ ] **Pesquisas salvas** - Guardar combinações de filtros
-- [ ] **Modo comparação melhorado** - Drag & drop de veículos
+- [ ] **[MAT-31](https://linear.app/matheusbeccalli/issue/MAT-31)** 🔎 Busca avançada - Busca por código FIPE, full-text com autocomplete em tempo real
 
 ### 🔧 Melhorias Técnicas
-- [ ] **Cache de dados** - Redis/Memcached para melhor performance
-- [ ] **Indicadores de atualização** - Mostrar quando dados foram atualizados
-- [ ] **Auto-refresh** - Opção de atualização automática
-- [ ] **Autenticação de usuários** - Sistema de contas
-- [ ] **API REST completa** - Documentação Swagger/OpenAPI
-
-### 👥 Features Comunitárias
-- [ ] **Comentários e notas** - Usuários podem adicionar observações sobre veículos
-- [ ] **Sistema de votação** - "Melhor custo-benefício" votado pela comunidade
-- [ ] **Compartilhar análises** - Links compartilháveis de comparações
-- [ ] **Exportar relatórios PDF** - Gerar PDFs profissionais com análises
+- [ ] **[MAT-38](https://linear.app/matheusbeccalli/issue/MAT-38)** 📚 API REST completa - Documentação Swagger/OpenAPI interativa para integração externa
+- [ ] **[MAT-34](https://linear.app/matheusbeccalli/issue/MAT-34)** ⚡ Cache de dados - Redis/Memcached para otimizar performance e reduzir carga no banco
+- [ ] **[MAT-35](https://linear.app/matheusbeccalli/issue/MAT-35)** 📅 Indicadores de atualização - Exibir quando dados da Tabela FIPE foram atualizados pela última vez
 
 ## 📚 Documentação Adicional
 
