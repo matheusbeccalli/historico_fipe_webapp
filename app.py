@@ -1018,6 +1018,7 @@ def get_months():
 
 
 @app.route('/api/compare-vehicles', methods=['POST'])
+@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
 @require_api_key
 @limiter.limit(make_rate_limit("30 per minute", "10 per minute"))
 def compare_vehicles():
@@ -1147,6 +1148,7 @@ def compare_vehicles():
 
 
 @app.route('/api/price', methods=['POST'])
+@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
 @require_api_key
 @limiter.limit(make_rate_limit("60 per minute", "20 per minute"))
 def get_price():
@@ -1399,6 +1401,7 @@ def get_default_car():
 
 
 @app.route('/api/economic-indicators', methods=['POST'])
+@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
 @require_api_key
 @limiter.limit(make_rate_limit("60 per minute", "60 per hour"))
 def get_economic_indicators():

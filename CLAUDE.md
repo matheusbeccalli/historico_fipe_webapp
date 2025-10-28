@@ -624,6 +624,71 @@ response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
 
 This ensures that only the origin (not full URL) is sent in the Referer header when navigating to external sites.
 
+### CSRF Protection
+
+**CRITICAL: Dual-mode CSRF protection** for API endpoints that support both session-based (browser) and API key authentication.
+
+**Architecture Decision (October 2025):**
+
+The application uses **Flask-WTF's global CSRF protection** (`CSRFProtect(app)` at app.py:252), but **API endpoints must be exempted** using `@csrf.exempt` to allow API key authentication while maintaining CSRF protection for session-based requests.
+
+**Why This Pattern Is Required:**
+
+1. **Flask middleware order:** `CSRFProtect(app)` runs **before** route decorators, so it intercepts requests before `@require_api_key` can validate API keys
+2. **Two authentication methods:**
+   - **Session-based** (browsers): Vulnerable to CSRF → **Requires CSRF tokens**
+   - **API key-based** (external clients): Not vulnerable to CSRF → **No CSRF tokens needed**
+3. **Exemption is safe:** The `@require_api_key` decorator (app.py:462-583) validates CSRF tokens internally for session-based requests (app.py:480-490)
+
+**Endpoints with @csrf.exempt (DO NOT REMOVE):**
+
+```python
+@app.route('/api/compare-vehicles', methods=['POST'])
+@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
+@require_api_key
+def compare_vehicles():
+    ...
+
+@app.route('/api/price', methods=['POST'])
+@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
+@require_api_key
+def get_price():
+    ...
+
+@app.route('/api/economic-indicators', methods=['POST'])
+@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
+@require_api_key
+def get_economic_indicators():
+    ...
+```
+
+**Security Guarantees:**
+
+| Authentication Method | CSRF Protection | Implementation |
+|----------------------|-----------------|----------------|
+| **API Key** (external clients) | ❌ Not needed | Exempted via `@csrf.exempt` - API keys in headers are not vulnerable to CSRF |
+| **Session** (web browsers) | ✅ Enforced | `@require_api_key` validates CSRF tokens for session auth (app.py:480-490) |
+
+**Testing CSRF Protection:**
+
+```bash
+# ✅ API key request (should work)
+curl -X POST -H "X-API-Key: [key]" -H "Content-Type: application/json" \
+  -d '{"vehicle_ids": [123]}' http://localhost:5000/api/compare-vehicles
+
+# ✅ Session request without CSRF token (should fail with 403)
+curl -X POST -b cookies.txt -H "Content-Type: application/json" \
+  -d '{"vehicle_ids": [123]}' http://localhost:5000/api/compare-vehicles
+# Expected: {"error": "CSRF validation failed", "message": "Invalid or missing CSRF token"}
+```
+
+**IMPORTANT - When Adding New POST Endpoints:**
+
+1. Add `@csrf.exempt` decorator **above** `@require_api_key`
+2. Include the comment: `# Exempt from global CSRF - @require_api_key handles CSRF for session auth`
+3. Do NOT remove `@csrf.exempt` - it breaks API key authentication
+4. Test both authentication methods after adding the endpoint
+
 ### Production Logging
 
 **Log rotation prevents disk exhaustion** (app.py:57-85):
