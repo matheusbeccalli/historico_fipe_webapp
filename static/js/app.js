@@ -1071,7 +1071,20 @@ async function updateComparisonStatistics() {
     basicContainer.innerHTML = '';
     advancedContainer.innerHTML = '';
 
-    // Process each vehicle and fetch its specific economic indicators
+    // PERFORMANCE: Fetch all economic indicators in parallel first
+    const indicatorsPromises = selectedVehicles.map(vehicle => {
+        if (!vehicle.data || vehicle.data.length === 0) {
+            return Promise.resolve({ ipca: null, cdi: null });
+        }
+        const vehicleStartDate = vehicle.data[0].date;
+        const vehicleEndDate = vehicle.data[vehicle.data.length - 1].date;
+        return fetchEconomicIndicators(vehicleStartDate, vehicleEndDate);
+    });
+
+    // Wait for all indicators to be fetched in parallel
+    const allIndicators = await Promise.all(indicatorsPromises);
+
+    // Now process each vehicle with its corresponding indicators
     for (const [index, vehicle] of selectedVehicles.entries()) {
         if (!vehicle.data || vehicle.data.length === 0) continue;
 
@@ -1086,8 +1099,8 @@ async function updateComparisonStatistics() {
         const vehicleStartDate = vehicle.data[0].date;
         const vehicleEndDate = vehicle.data[vehicle.data.length - 1].date;
 
-        // Fetch economic indicators for THIS vehicle's specific date range
-        const indicators = await fetchEconomicIndicators(vehicleStartDate, vehicleEndDate);
+        // Get the pre-fetched economic indicators for this vehicle
+        const indicators = allIndicators[index];
 
         // Format the period for display
         const periodLabel = formatDateRangeShort(vehicleStartDate, vehicleEndDate);
