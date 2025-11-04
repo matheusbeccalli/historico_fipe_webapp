@@ -519,9 +519,6 @@ function clearStatistics() {
 async function loadBrands() {
     try {
         const response = await fetch('/api/brands', {
-            headers: {
-                'X-API-Key': window.API_KEY
-            },
             credentials: 'same-origin'
         });
         const brands = await response.json();
@@ -550,9 +547,6 @@ async function loadBrands() {
 async function loadVehicleOptions(brandId) {
     try {
         const response = await fetch(`/api/vehicle-options/${brandId}`, {
-            headers: {
-                'X-API-Key': window.API_KEY
-            },
             credentials: 'same-origin'
         });
 
@@ -1199,9 +1193,6 @@ async function updateComparisonStatistics() {
 async function loadDefaultVehicle() {
     try {
         const response = await fetch('/api/default-car', {
-            headers: {
-                'X-API-Key': window.API_KEY
-            },
             credentials: 'same-origin'
         });
         const defaultCar = await response.json();
@@ -1283,9 +1274,7 @@ async function initializeApp() {
 async function loadDepreciationAnalysis() {
     try {
         const response = await fetch('/api/depreciation-analysis?months=12', {
-            headers: {
-                'X-API-Key': window.API_KEY
-            }
+            credentials: 'same-origin'
         });
 
         if (!response.ok) {

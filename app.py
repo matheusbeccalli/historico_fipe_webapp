@@ -717,7 +717,7 @@ def index():
         'index.html',
         default_brand=app.config.get('DEFAULT_BRAND', 'Volkswagen'),
         default_model=app.config.get('DEFAULT_MODEL', 'Gol')
-        # API key is NO LONGER passed to the template
+        # Frontend uses session-only authentication (no API key needed)
     )
 
 
