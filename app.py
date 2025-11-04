@@ -1215,8 +1215,8 @@ def get_price():
             .join(CarPrice.model_year)
             .join(CarPrice.reference_month)
             .filter(
-                Brand.brand_name.ilike(func.concat('%', sanitize_like_pattern(brand_name), '%')),
-                CarModel.model_name.ilike(func.concat('%', sanitize_like_pattern(model_name), '%')),
+                Brand.brand_name.ilike(func.concat('%', sanitize_like_pattern(brand_name), '%'), escape='\\'),
+                CarModel.model_name.ilike(func.concat('%', sanitize_like_pattern(model_name), '%'), escape='\\'),
                 ModelYear.year_description == year_desc,
                 ReferenceMonth.month_date == month_date
             )
@@ -1344,7 +1344,7 @@ def get_default_car():
             .join(CarPrice.reference_month)
             .filter(
                 CarModel.brand_id == brand.id,
-                CarModel.model_name.ilike(func.concat('%', sanitize_like_pattern(default_model), '%')),
+                CarModel.model_name.ilike(func.concat('%', sanitize_like_pattern(default_model), '%'), escape='\\'),
                 ReferenceMonth.month_date == latest_month
             )
             .distinct()
