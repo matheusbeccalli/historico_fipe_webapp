@@ -75,31 +75,11 @@ Serena maintains project knowledge in memory files:
 
 ### Specialized AI Agents
 
-This project includes **5 specialized agents** in `.claude/agents/` that should be used proactively:
+This project includes **4 specialized agents** in `.claude/agents/` that should be used proactively:
 
-#### 1. 🔍 code-reviewer
-**When to use:** After writing or modifying code (new features, bug fixes, refactoring)
+**Note:** For code review, use the `superpowers:requesting-code-review` skill available through the superpowers plugin system.
 
-**Capabilities:**
-- Security vulnerability detection (SQL injection, XSS, authentication bypasses)
-- Performance analysis (N+1 queries, inefficiencies)
-- Code quality review (maintainability, best practices)
-- Project-specific pattern validation (checks against CLAUDE.md)
-- Prioritized feedback (Critical → High → Medium → Low)
-
-**Use proactively after:**
-- Adding new API endpoints
-- Modifying database queries
-- Implementing new features
-- Refactoring existing code
-
-**Example:**
-```
-User: "I've added a new /api/vehicle-details endpoint"
-Assistant: "Let me use the code-reviewer agent to ensure it follows best practices and security standards."
-```
-
-#### 2. 📊 data-analyst-sql
+#### 1. 📊 data-analyst-sql
 **When to use:** For data analysis, SQL queries, insights, or query optimization
 
 **Capabilities:**
@@ -122,7 +102,7 @@ User: "Which brands have the most stable prices?"
 Assistant: "I'll use the data-analyst-sql agent to analyze price volatility across brands."
 ```
 
-#### 3. 🐛 debug-specialist
+#### 2. 🐛 debug-specialist
 **When to use:** For errors, exceptions, test failures, or unexpected behavior
 
 **Capabilities:**
@@ -145,7 +125,7 @@ User: "Getting a 500 error on /api/compare-vehicles"
 Assistant: "Let me use the debug-specialist agent to investigate this error."
 ```
 
-#### 4. 🎯 feature-implementation-planner
+#### 3. 🎯 feature-implementation-planner
 **When to use:** Planning implementation of features from the project roadmap
 
 **Capabilities:**
@@ -171,7 +151,7 @@ User: "Let's implement the vehicle comparison feature"
 Assistant: "I'll use the feature-implementation-planner agent to create a detailed plan."
 ```
 
-#### 5. 🧪 e2e-testing-specialist
+#### 4. 🧪 e2e-testing-specialist
 **When to use:** For end-to-end testing, UI validation, and browser automation
 
 **Capabilities:**
@@ -209,14 +189,14 @@ Assistant: "I'll use the e2e-testing-specialist agent to automate and validate t
 **When implementing features:**
 1. Use `feature-implementation-planner` agent to create detailed plan
 2. Use Serena MCP for symbol-based code navigation and editing
-3. Use `code-reviewer` agent after completing implementation
-4. Use `e2e-testing-specialist` agent to validate functionality
-5. Use `debug-specialist` agent if encountering issues
+3. Use `e2e-testing-specialist` agent to validate functionality
+4. Use `debug-specialist` agent if encountering issues
+5. Use `superpowers:requesting-code-review` skill for quality assurance after major changes
 
 **When analyzing data or queries:**
 1. Use `data-analyst-sql` agent for insights and optimization
 2. Use Serena's `find_symbol` to understand existing query patterns
-3. Use `code-reviewer` agent to validate query security and performance
+3. Use `superpowers:requesting-code-review` skill to validate query security and performance
 
 **When testing:**
 1. Use `e2e-testing-specialist` agent for user flow validation
@@ -228,10 +208,10 @@ Assistant: "I'll use the e2e-testing-specialist agent to automate and validate t
 1. **Plan** → Use feature-implementation-planner for new features
 2. **Navigate** → Use Serena MCP for code exploration
 3. **Implement** → Use Serena's symbol editing for changes
-4. **Review** → Use code-reviewer agent for quality assurance
-5. **Test** → Use e2e-testing-specialist for validation
-6. **Debug** → Use debug-specialist agent if issues arise
-7. **Analyze** → Use data-analyst-sql for insights and optimization
+4. **Test** → Use e2e-testing-specialist for validation
+5. **Debug** → Use debug-specialist agent if issues arise
+6. **Analyze** → Use data-analyst-sql for insights and optimization
+7. **Review** → Use superpowers:requesting-code-review skill for quality assurance after major changes
 
 ## Key Commands
 
