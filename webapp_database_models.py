@@ -15,7 +15,7 @@ Usage in your webapp:
     session.close()
 """
 
-from sqlalchemy import create_engine, Column, Integer, String, Float, Date, ForeignKey, UniqueConstraint
+from sqlalchemy import create_engine, Column, Integer, String, Float, Date, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker, Session, joinedload
 from datetime import datetime
 from typing import Tuple
@@ -44,7 +44,7 @@ class ReferenceMonth(Base):
     id = Column(Integer, primary_key=True)
     month_code = Column(String(50), unique=True, nullable=False)
     month_date = Column(Date, nullable=False)
-    created_at = Column(Date, default=datetime.now)
+    created_at = Column(Date, server_default=func.now())
 
     # Relationships
     prices = relationship("CarPrice", back_populates="reference_month")
@@ -78,7 +78,7 @@ class Brand(Base):
     id = Column(Integer, primary_key=True)
     brand_code = Column(String(50), unique=True, nullable=False)
     brand_name = Column(String(100), nullable=False)
-    created_at = Column(Date, default=datetime.now)
+    created_at = Column(Date, server_default=func.now())
 
     # Relationships
     models = relationship("CarModel", back_populates="brand")
@@ -115,7 +115,7 @@ class CarModel(Base):
     brand_id = Column(Integer, ForeignKey('brands.id'), nullable=False)
     model_code = Column(String(50), nullable=False)
     model_name = Column(String(200), nullable=False)
-    created_at = Column(Date, default=datetime.now)
+    created_at = Column(Date, server_default=func.now())
 
     # Constraints
     __table_args__ = (UniqueConstraint('brand_id', 'model_code', name='_brand_model_uc'),)
@@ -160,7 +160,7 @@ class ModelYear(Base):
     car_model_id = Column(Integer, ForeignKey('car_models.id'), nullable=False)
     year_code = Column(String(50), nullable=False)
     year_description = Column(String(100), nullable=False)
-    created_at = Column(Date, default=datetime.now)
+    created_at = Column(Date, server_default=func.now())
 
     # Constraints
     __table_args__ = (UniqueConstraint('car_model_id', 'year_code', name='_model_year_uc'),)
@@ -219,7 +219,7 @@ class CarPrice(Base):
     fuel_type = Column(String(50))
 
     # Metadata
-    scraped_at = Column(Date, default=datetime.now)
+    scraped_at = Column(Date, server_default=func.now())
 
     # Constraints
     __table_args__ = (UniqueConstraint('reference_month_id', 'model_year_id', name='_month_year_uc'),)
