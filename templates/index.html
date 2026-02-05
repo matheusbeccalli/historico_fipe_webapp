@@ -4,7 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>FIPE - Histórico de Preços de Veículos</title>
+    <meta name="description" content="Consulte o histórico de preços da Tabela FIPE. Compare a evolução de preços de até 5 veículos com gráficos interativos, análise de depreciação e indicadores econômicos.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="{{ request.url_root[:-1] }}{{ request.path }}">
+    <title>Histórico de Preços FIPE | Compare a Evolução de Preços de Veículos</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="{{ request.url_root[:-1] }}{{ request.path }}">
+    <meta property="og:title" content="Histórico de Preços FIPE | Compare a Evolução de Preços de Veículos">
+    <meta property="og:description" content="Consulte o histórico de preços da Tabela FIPE. Compare a evolução de preços de até 5 veículos com gráficos interativos, análise de depreciação e indicadores econômicos.">
+    <meta property="og:image" content="{{ request.url_root[:-1] }}{{ url_for('static', filename='img/og-image.png') }}">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:site_name" content="FIPE Histórico">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Histórico de Preços FIPE | Compare a Evolução de Preços de Veículos">
+    <meta name="twitter:description" content="Consulte o histórico de preços da Tabela FIPE. Compare a evolução de preços de até 5 veículos com gráficos interativos.">
+    <meta name="twitter:image" content="{{ request.url_root[:-1] }}{{ url_for('static', filename='img/og-image.png') }}">
+
+    <!-- Google Analytics 4 (only loaded when GA_MEASUREMENT_ID is configured) -->
+    {% if ga_measurement_id %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}" nonce="{{ g.csp_nonce }}"></script>
+    <script nonce="{{ g.csp_nonce }}">
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '{{ ga_measurement_id }}');
+    </script>
+    {% endif %}
 
     <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -24,14 +54,47 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@graph": [
+            {
+                "@type": "WebSite",
+                "name": "FIPE Histórico",
+                "url": "{{ request.url_root[:-1] }}",
+                "description": "Consulte o histórico de preços da Tabela FIPE. Compare a evolução de preços de veículos com gráficos interativos.",
+                "inLanguage": "pt-BR"
+            },
+            {
+                "@type": "WebApplication",
+                "name": "FIPE Histórico - Comparador de Preços",
+                "url": "{{ request.url_root[:-1] }}",
+                "description": "Ferramenta gratuita para consultar e comparar o histórico de preços de veículos da Tabela FIPE com gráficos interativos e análise de depreciação.",
+                "applicationCategory": "FinanceApplication",
+                "operatingSystem": "Web",
+                "offers": {
+                    "@type": "Offer",
+                    "price": "0",
+                    "priceCurrency": "BRL"
+                },
+                "inLanguage": "pt-BR",
+                "browserRequirements": "Requires JavaScript"
+            }
+        ]
+    }
+    </script>
 </head>
 <body>
     <!-- Premium Navigation Bar with glassmorphism -->
     <nav class="navbar navbar-light">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">
-                <i class="bi bi-graph-up-arrow"></i>
-                FIPE Histórico
+                <img id="navbarLogo" src="{{ url_for('static', filename='img/logo-light.png') }}" alt="FIPE Histórico - Comparador de Preços de Veículos" class="navbar-logo"
+                     width="1080" height="293"
+                     data-light="{{ url_for('static', filename='img/logo-light.png') }}"
+                     data-dark="{{ url_for('static', filename='img/logo-dark.png') }}">
             </span>
             <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
                 <i class="bi bi-sun-fill"></i>
@@ -40,17 +103,37 @@
         </div>
     </nav>
 
+    <!-- Page Heading (SEO) -->
+    <h1 class="visually-hidden">Histórico de Preços da Tabela FIPE - Comparador de Veículos</h1>
+
+    <!-- Noscript fallback for search engines and users without JS -->
+    <noscript>
+        <div class="container mt-4">
+            <div class="alert alert-warning text-center">
+                <h2>Histórico de Preços FIPE</h2>
+                <p>Esta aplicação requer JavaScript para funcionar. Por favor, ative o JavaScript no seu navegador para consultar o histórico de preços de veículos da Tabela FIPE.</p>
+                <p>Com esta ferramenta, você pode:</p>
+                <ul class="list-unstyled">
+                    <li>Comparar a evolução de preços de até 5 veículos</li>
+                    <li>Visualizar gráficos interativos de preços históricos</li>
+                    <li>Analisar depreciação de veículos ao longo do tempo</li>
+                    <li>Comparar preços com indicadores econômicos (IPCA, CDI)</li>
+                </ul>
+            </div>
+        </div>
+    </noscript>
+
     <!-- Main Container -->
-    <div class="container-fluid">
+    <main class="container-fluid">
         <div class="row">
             <!-- Left Panel - Controls with premium styling -->
             <div class="col-lg-3 col-md-4 mb-4">
                 <div class="card control-card">
                     <div class="card-header">
-                        <h5 class="mb-0">
+                        <h2 class="h5 mb-0">
                             <i class="bi bi-car-front-fill"></i>
                             Comparar Veículos
-                        </h5>
+                        </h2>
                     </div>
                     <div class="card-body">
                         <!-- Brand Dropdown -->
@@ -289,6 +372,8 @@
         </div>
     </div>
 
+    </main>
+
     <!-- Premium Footer -->
     <footer>
         <div class="container text-center">
@@ -314,6 +399,7 @@
             const themeToggle = document.getElementById('themeToggle');
             const themeIcon = themeToggle.querySelector('i');
             const themeText = themeToggle.querySelector('.theme-toggle-text');
+            const navbarLogo = document.getElementById('navbarLogo');
             const html = document.documentElement;
 
             // Check for saved theme preference or default to system preference
@@ -342,6 +428,11 @@
                     themeIcon.classList.remove('bi-moon-stars-fill');
                     themeIcon.classList.add('bi-sun-fill');
                     themeText.textContent = 'Claro';
+                }
+
+                // Update navbar logo
+                if (navbarLogo) {
+                    navbarLogo.src = theme === 'dark' ? navbarLogo.dataset.dark : navbarLogo.dataset.light;
                 }
 
                 // Update Plotly chart colors if chart exists

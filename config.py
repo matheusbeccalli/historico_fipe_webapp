@@ -67,6 +67,10 @@ class Config:
     WTF_CSRF_TIME_LIMIT = None  # CSRF tokens don't expire (valid for session lifetime)
     WTF_CSRF_SSL_STRICT = False  # Allow development without HTTPS (set True in production if needed)
 
+    # Google Analytics 4 Measurement ID (e.g., G-XXXXXXXXXX)
+    # Leave empty to disable analytics tracking
+    GA_MEASUREMENT_ID = os.getenv('GA_MEASUREMENT_ID', '')
+
     @staticmethod
     def validate_secret_key():
         """

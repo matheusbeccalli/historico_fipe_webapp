@@ -17,7 +17,6 @@ from sqlalchemy.pool import QueuePool
 from datetime import datetime, timedelta
 import hashlib
 import hmac
-import json
 import logging
 from logging.handlers import RotatingFileHandler
 import os
@@ -661,11 +660,11 @@ def set_security_headers(response):
     # Scripts still use nonce-based execution for security
     csp_directives = [
         "default-src 'self'",
-        f"script-src 'self' 'nonce-{nonce}' https://cdn.plot.ly https://cdn.jsdelivr.net",
+        f"script-src 'self' 'nonce-{nonce}' https://cdn.plot.ly https://cdn.jsdelivr.net https://www.googletagmanager.com",
         f"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
         "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
-        "img-src 'self' data:",
-        "connect-src 'self' https://cdn.plot.ly https://cdn.jsdelivr.net https://api.bcb.gov.br"
+        "img-src 'self' data: https://www.googletagmanager.com",
+        "connect-src 'self' https://cdn.plot.ly https://cdn.jsdelivr.net https://api.bcb.gov.br https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com"
     ]
     response.headers['Content-Security-Policy'] = '; '.join(csp_directives)
 
@@ -716,7 +715,8 @@ def index():
     return render_template(
         'index.html',
         default_brand=app.config.get('DEFAULT_BRAND', 'Volkswagen'),
-        default_model=app.config.get('DEFAULT_MODEL', 'Gol')
+        default_model=app.config.get('DEFAULT_MODEL', 'Gol'),
+        ga_measurement_id=app.config.get('GA_MEASUREMENT_ID', '')
         # API key is NO LONGER passed to the template
     )
 
@@ -769,6 +769,48 @@ def health():
         health_status['checks']['session'] = 'warning'
 
     return jsonify(health_status), 200
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    """
+    Serve robots.txt for search engine crawlers.
+
+    Allows all crawlers to index the site while pointing them to the sitemap.
+    Disallows crawling of API endpoints and health check.
+    """
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /api/\n"
+        "Disallow: /health\n"
+        "\n"
+        f"Sitemap: {request.url_root}sitemap.xml\n"
+    )
+    return app.response_class(content, mimetype='text/plain')
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    """
+    Serve sitemap.xml for search engine crawlers.
+
+    Lists the main page as the only user-facing URL.
+    Uses the current date as the last modification date.
+    """
+    base_url = request.url_root.rstrip('/')
+    sitemap = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        '  <url>\n'
+        f'    <loc>{base_url}/</loc>\n'
+        f'    <lastmod>{datetime.now().strftime("%Y-%m-%d")}</lastmod>\n'
+        '    <changefreq>monthly</changefreq>\n'
+        '    <priority>1.0</priority>\n'
+        '  </url>\n'
+        '</urlset>\n'
+    )
+    return app.response_class(sitemap, mimetype='application/xml')
 
 
 # ============================================================================

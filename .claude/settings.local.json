@@ -18,9 +18,21 @@
       "mcp__serena__replace_symbol_body",
       "mcp__serena__insert_after_symbol",
       "mcp__serena__find_referencing_symbols",
-      "mcp__serena__think_about_collected_information"
+      "mcp__serena__think_about_collected_information",
+      "Skill(superpowers:receiving-code-review)",
+      "Bash(python3:*)",
+      "mcp__plugin_serena_serena__read_file",
+      "mcp__serena__think_about_task_adherence",
+      "Bash(python:*)",
+      "mcp__serena__think_about_whether_you_are_done",
+      "mcp__plugin_serena_serena__replace_content",
+      "mcp__plugin_serena_serena__activate_project",
+      "Skill(commit-commands:commit)"
     ],
     "deny": [],
     "ask": []
+  },
+  "enabledPlugins": {
+    "marketing-skills@marketingskills": true
   }
 }
