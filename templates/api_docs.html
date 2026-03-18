@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="FIPE Price Tracker API Reference - Access historical vehicle price data from Brazil's FIPE table via RESTful endpoints.">
+    <meta name="robots" content="index, follow">
+    <title>API Reference | FIPE Price Tracker</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    {% if ga_measurement_id %}
+    <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}" nonce="{{ g.csp_nonce }}"></script>
+    <script nonce="{{ g.csp_nonce }}">
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', '{{ ga_measurement_id }}');
+    </script>
+    {% endif %}
+</head>
+<body>
+    <nav class="navbar navbar-light">
+        <div class="container-fluid">
+            <a href="{{ url_for('index') }}" class="navbar-brand mb-0 h1">
+                <img id="navbarLogo" src="{{ url_for('static', filename='img/logo-light.png') }}" alt="FIPE Histórico" class="navbar-logo"
+                     width="1080" height="293"
+                     data-light="{{ url_for('static', filename='img/logo-light.png') }}"
+                     data-dark="{{ url_for('static', filename='img/logo-dark.png') }}">
+            </a>
+            <div class="navbar-right">
+                <a href="{{ url_for('api_docs') }}" class="navbar-api-link" style="font-weight:700;">API Docs</a>
+                <div class="navbar-divider"></div>
+                <button id="themeToggle" class="theme-toggle" aria-label="Toggle theme">
+                    <i class="bi bi-sun-fill"></i>
+                    <span class="theme-toggle-text">Claro</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="api-docs-layout">
+        <!-- Sidebar -->
+        <aside class="api-docs-sidebar">
+            <div class="api-docs-sidebar-title">API Reference</div>
+
+            <div class="api-docs-sidebar-category">Getting Started</div>
+            <a href="#introduction" class="api-docs-sidebar-link active">Introduction</a>
+            <a href="#authentication" class="api-docs-sidebar-link">Authentication</a>
+            <a href="#rate-limits" class="api-docs-sidebar-link">Rate Limits</a>
+            <a href="#error-handling" class="api-docs-sidebar-link">Error Handling</a>
+
+            <div class="api-docs-sidebar-category">Vehicle Data</div>
+            <a href="#get-brands" class="api-docs-sidebar-link"><span class="method-badge-sm method-get">GET</span> /api/brands</a>
+            <a href="#get-vehicle-options" class="api-docs-sidebar-link"><span class="method-badge-sm method-get">GET</span> /api/vehicle-options</a>
+            <a href="#get-months" class="api-docs-sidebar-link"><span class="method-badge-sm method-get">GET</span> /api/months</a>
+            <a href="#get-default-car" class="api-docs-sidebar-link"><span class="method-badge-sm method-get">GET</span> /api/default-car</a>
+
+            <div class="api-docs-sidebar-category">Price &amp; History</div>
+            <a href="#post-compare-vehicles" class="api-docs-sidebar-link"><span class="method-badge-sm method-post">POST</span> /api/compare-vehicles</a>
+            <a href="#post-price" class="api-docs-sidebar-link"><span class="method-badge-sm method-post">POST</span> /api/price</a>
+
+            <div class="api-docs-sidebar-category">Economic &amp; Market</div>
+            <a href="#post-economic-indicators" class="api-docs-sidebar-link"><span class="method-badge-sm method-post">POST</span> /api/economic-indicators</a>
+            <a href="#get-depreciation-analysis" class="api-docs-sidebar-link"><span class="method-badge-sm method-get">GET</span> /api/depreciation-analysis</a>
+
+            <div class="api-docs-sidebar-category">System</div>
+            <a href="#get-health" class="api-docs-sidebar-link"><span class="method-badge-sm method-get">GET</span> /health</a>
+        </aside>
+
+        <!-- Mobile nav -->
+        <div class="api-docs-mobile-nav">
+            <select id="mobileNavSelect" class="form-select">
+                <option value="">Jump to section...</option>
+                <optgroup label="Getting Started">
+                    <option value="#introduction">Introduction</option>
+                    <option value="#authentication">Authentication</option>
+                    <option value="#rate-limits">Rate Limits</option>
+                    <option value="#error-handling">Error Handling</option>
+                </optgroup>
+                <optgroup label="Vehicle Data">
+                    <option value="#get-brands">GET /api/brands</option>
+                    <option value="#get-vehicle-options">GET /api/vehicle-options</option>
+                    <option value="#get-months">GET /api/months</option>
+                    <option value="#get-default-car">GET /api/default-car</option>
+                </optgroup>
+                <optgroup label="Price &amp; History">
+                    <option value="#post-compare-vehicles">POST /api/compare-vehicles</option>
+                    <option value="#post-price">POST /api/price</option>
+                </optgroup>
+                <optgroup label="Economic &amp; Market">
+                    <option value="#post-economic-indicators">POST /api/economic-indicators</option>
+                    <option value="#get-depreciation-analysis">GET /api/depreciation-analysis</option>
+                </optgroup>
+                <optgroup label="System">
+                    <option value="#get-health">GET /health</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <!-- Main content -->
+        <main class="api-docs-main">
+
+            <!-- ===== INTRODUCTION ===== -->
+            <section id="introduction" class="api-docs-section">
+                <h2>Introduction</h2>
+                <p>The FIPE Price Tracker API provides programmatic access to historical vehicle price data from Brazil's FIPE (Fundação Instituto de Pesquisas Econômicas) table. Use these endpoints to query price history, compare vehicles, and analyze market trends.</p>
+                <p>All responses are returned as <strong>JSON</strong>. Dates are stored in <code>YYYY-MM-DD</code> format. Prices are in Brazilian Real (BRL) — for example, <code>R$ 56.789,00</code>.</p>
+                <p>Base URL:</p>
+                <div class="api-code-block"><span class="code-string">https://your-domain.com</span></div>
+            </section>
+
+            <!-- ===== AUTHENTICATION ===== -->
+            <section id="authentication" class="api-docs-section">
+                <h2>Authentication</h2>
+                <p>The API is <strong>public</strong> and requires no authentication. No API keys are needed. You can call any endpoint directly from curl, Postman, or your application code.</p>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-comment"># No authentication needed</span>
+<span class="code-keyword">curl</span> <span class="code-string">https://your-domain.com/api/brands</span></div>
+            </section>
+
+            <!-- ===== RATE LIMITS ===== -->
+            <section id="rate-limits" class="api-docs-section">
+                <h2>Rate Limits</h2>
+                <p>All endpoints are rate-limited by IP address. When you exceed the limit, the API returns HTTP <code>429 Too Many Requests</code>.</p>
+                <table class="rate-limits-table">
+                    <thead>
+                        <tr><th>Endpoint</th><th>Method</th><th>Limit</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>/api/brands</code></td><td>GET</td><td>120/min</td></tr>
+                        <tr><td><code>/api/vehicle-options/&lt;id&gt;</code></td><td>GET</td><td>120/min</td></tr>
+                        <tr><td><code>/api/months</code></td><td>GET</td><td>120/min</td></tr>
+                        <tr><td><code>/api/default-car</code></td><td>GET</td><td>120/min</td></tr>
+                        <tr><td><code>/api/price</code></td><td>POST</td><td>60/min</td></tr>
+                        <tr><td><code>/api/compare-vehicles</code></td><td>POST</td><td>30/min</td></tr>
+                        <tr><td><code>/api/economic-indicators</code></td><td>POST</td><td>60/min</td></tr>
+                        <tr><td><code>/api/depreciation-analysis</code></td><td>GET</td><td>20/min</td></tr>
+                        <tr><td><code>/health</code></td><td>GET</td><td>60/min</td></tr>
+                    </tbody>
+                </table>
+            </section>
+
+            <!-- ===== ERROR HANDLING ===== -->
+            <section id="error-handling" class="api-docs-section">
+                <h2>Error Handling</h2>
+                <p>Errors return a JSON object with an <code>error</code> field describing what went wrong.</p>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">{</span>
+  <span class="code-key">"error"</span>: <span class="code-string">"Description of what went wrong"</span>
+<span class="code-bracket">}</span></div>
+                <table class="error-table">
+                    <tr><td>400</td><td>Bad Request — missing or invalid parameters</td></tr>
+                    <tr><td>404</td><td>Not Found — no data matches your query</td></tr>
+                    <tr><td>429</td><td>Too Many Requests — rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Internal Server Error — something went wrong on our end</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== GET /api/brands ===== -->
+            <section id="get-brands" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge get">GET</span>
+                    <span class="endpoint-path">/api/brands</span>
+                </div>
+                <p class="endpoint-description">List all vehicle brands available in the most recent FIPE reference table.</p>
+                <span class="rate-limit-badge">120 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <div class="no-params">No parameters required.</div>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> <span class="code-string">https://your-domain.com/api/brands</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">[</span>
+  <span class="code-bracket">{</span>
+    <span class="code-key">"id"</span>: <span class="code-number">21</span>,
+    <span class="code-key">"name"</span>: <span class="code-string">"Chevrolet"</span>
+  <span class="code-bracket">}</span>,
+  <span class="code-bracket">{</span>
+    <span class="code-key">"id"</span>: <span class="code-number">22</span>,
+    <span class="code-key">"name"</span>: <span class="code-string">"Fiat"</span>
+  <span class="code-bracket">}</span>,
+  <span class="code-bracket">{</span>
+    <span class="code-key">"id"</span>: <span class="code-number">59</span>,
+    <span class="code-key">"name"</span>: <span class="code-string">"Volkswagen"</span>
+  <span class="code-bracket">}</span>
+<span class="code-bracket">]</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Database query failed</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== GET /api/vehicle-options ===== -->
+            <section id="get-vehicle-options" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge get">GET</span>
+                    <span class="endpoint-path">/api/vehicle-options/&lt;brand_id&gt;</span>
+                </div>
+                <p class="endpoint-description">Get all models and year variants for a brand, with a lookup table for bidirectional filtering (select model first or year first).</p>
+                <span class="rate-limit-badge">120 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <table class="params-table">
+                    <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>brand_id</code></td><td>integer</td><td>URL path <span class="param-required">required</span></td><td>Brand ID (from <code>/api/brands</code>)</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> <span class="code-string">https://your-domain.com/api/vehicle-options/59</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">{</span>
+  <span class="code-key">"models"</span>: <span class="code-bracket">[</span>
+    <span class="code-bracket">{</span><span class="code-key">"id"</span>: <span class="code-number">837</span>, <span class="code-key">"name"</span>: <span class="code-string">"Gol 1.0 12V MCV"</span><span class="code-bracket">}</span>,
+    <span class="code-bracket">{</span><span class="code-key">"id"</span>: <span class="code-number">838</span>, <span class="code-key">"name"</span>: <span class="code-string">"Golf 1.4 TSI"</span><span class="code-bracket">}</span>
+  <span class="code-bracket">]</span>,
+  <span class="code-key">"years"</span>: <span class="code-bracket">[</span>
+    <span class="code-bracket">{</span><span class="code-key">"id"</span>: <span class="code-number">2100</span>, <span class="code-key">"name"</span>: <span class="code-string">"2024 Gasolina"</span><span class="code-bracket">}</span>,
+    <span class="code-bracket">{</span><span class="code-key">"id"</span>: <span class="code-number">2101</span>, <span class="code-key">"name"</span>: <span class="code-string">"2023 Flex"</span><span class="code-bracket">}</span>
+  <span class="code-bracket">]</span>,
+  <span class="code-key">"model_year_lookup"</span>: <span class="code-bracket">{</span>
+    <span class="code-key">"837"</span>: <span class="code-bracket">[</span><span class="code-number">2100</span>, <span class="code-number">2101</span><span class="code-bracket">]</span>,
+    <span class="code-key">"838"</span>: <span class="code-bracket">[</span><span class="code-number">2100</span><span class="code-bracket">]</span>
+  <span class="code-bracket">}</span>
+<span class="code-bracket">}</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>404</td><td>No models found for this brand</td></tr>
+                    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Database query failed</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== GET /api/months ===== -->
+            <section id="get-months" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge get">GET</span>
+                    <span class="endpoint-path">/api/months</span>
+                </div>
+                <p class="endpoint-description">List all available FIPE reference months, sorted from newest to oldest.</p>
+                <span class="rate-limit-badge">120 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <div class="no-params">No parameters required.</div>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> <span class="code-string">https://your-domain.com/api/months</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">[</span>
+  <span class="code-bracket">{</span>
+    <span class="code-key">"date"</span>: <span class="code-string">"2024-06-01"</span>,
+    <span class="code-key">"label"</span>: <span class="code-string">"junho/2024"</span>
+  <span class="code-bracket">}</span>,
+  <span class="code-bracket">{</span>
+    <span class="code-key">"date"</span>: <span class="code-string">"2024-05-01"</span>,
+    <span class="code-key">"label"</span>: <span class="code-string">"maio/2024"</span>
+  <span class="code-bracket">}</span>
+<span class="code-bracket">]</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Database query failed</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== GET /api/default-car ===== -->
+            <section id="get-default-car" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge get">GET</span>
+                    <span class="endpoint-path">/api/default-car</span>
+                </div>
+                <p class="endpoint-description">Get the default vehicle selection configured for the application. Useful for initializing a UI with a pre-selected vehicle.</p>
+                <span class="rate-limit-badge">120 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <div class="no-params">No parameters required.</div>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> <span class="code-string">https://your-domain.com/api/default-car</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">{</span>
+  <span class="code-key">"brand"</span>: <span class="code-string">"Volkswagen"</span>,
+  <span class="code-key">"brand_id"</span>: <span class="code-number">59</span>,
+  <span class="code-key">"model"</span>: <span class="code-string">"Gol 1.0 12V MCV"</span>,
+  <span class="code-key">"model_id"</span>: <span class="code-number">837</span>,
+  <span class="code-key">"year"</span>: <span class="code-string">"2024 Gasolina"</span>,
+  <span class="code-key">"year_id"</span>: <span class="code-number">2100</span>
+<span class="code-bracket">}</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>404</td><td>Default vehicle not found in database</td></tr>
+                    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Database query failed</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== POST /api/compare-vehicles ===== -->
+            <section id="post-compare-vehicles" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge post">POST</span>
+                    <span class="endpoint-path">/api/compare-vehicles</span>
+                </div>
+                <p class="endpoint-description">Get price history for up to 5 vehicles. Returns time-series data suitable for charting.</p>
+                <span class="rate-limit-badge">30 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <table class="params-table">
+                    <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>vehicle_ids</code></td><td>array of integers</td><td>JSON body <span class="param-required">required</span></td><td>List of ModelYear IDs to compare (max 5)</td></tr>
+                        <tr><td><code>start_date</code></td><td>string</td><td>JSON body <span class="param-optional">optional</span></td><td>Start date filter (YYYY-MM-DD)</td></tr>
+                        <tr><td><code>end_date</code></td><td>string</td><td>JSON body <span class="param-optional">optional</span></td><td>End date filter (YYYY-MM-DD)</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> -X POST <span class="code-string">https://your-domain.com/api/compare-vehicles</span> \
+  -H <span class="code-string">"Content-Type: application/json"</span> \
+  -d <span class="code-string">'{"vehicle_ids": [2100, 2101], "start_date": "2023-01-01", "end_date": "2024-06-01"}'</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">{</span>
+  <span class="code-key">"vehicles"</span>: <span class="code-bracket">[</span>
+    <span class="code-bracket">{</span>
+      <span class="code-key">"name"</span>: <span class="code-string">"Volkswagen Gol 1.0 12V MCV 2024 Gasolina"</span>,
+      <span class="code-key">"year_id"</span>: <span class="code-number">2100</span>,
+      <span class="code-key">"data"</span>: <span class="code-bracket">[</span>
+        <span class="code-bracket">{</span>
+          <span class="code-key">"date"</span>: <span class="code-string">"2023-01-01"</span>,
+          <span class="code-key">"price"</span>: <span class="code-number">55230.00</span>,
+          <span class="code-key">"label"</span>: <span class="code-string">"janeiro/2023"</span>
+        <span class="code-bracket">}</span>,
+        <span class="code-bracket">{</span>
+          <span class="code-key">"date"</span>: <span class="code-string">"2023-02-01"</span>,
+          <span class="code-key">"price"</span>: <span class="code-number">55890.00</span>,
+          <span class="code-key">"label"</span>: <span class="code-string">"fevereiro/2023"</span>
+        <span class="code-bracket">}</span>
+      <span class="code-bracket">]</span>
+    <span class="code-bracket">}</span>
+  <span class="code-bracket">]</span>
+<span class="code-bracket">}</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>400</td><td>Missing <code>vehicle_ids</code> or exceeds maximum of 5</td></tr>
+                    <tr><td>404</td><td>No price data found for the given vehicles</td></tr>
+                    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Database query failed</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== POST /api/price ===== -->
+            <section id="post-price" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge post">POST</span>
+                    <span class="endpoint-path">/api/price</span>
+                </div>
+                <p class="endpoint-description">Look up a single price point for a specific vehicle at a specific reference month. Uses fuzzy matching for brand and model names.</p>
+                <span class="rate-limit-badge">60 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <table class="params-table">
+                    <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>brand</code></td><td>string</td><td>JSON body <span class="param-required">required</span></td><td>Brand name (fuzzy match, e.g. "Volkswagen")</td></tr>
+                        <tr><td><code>model</code></td><td>string</td><td>JSON body <span class="param-required">required</span></td><td>Model name (fuzzy match, e.g. "Gol")</td></tr>
+                        <tr><td><code>year</code></td><td>string</td><td>JSON body <span class="param-required">required</span></td><td>Year description (exact match, e.g. "2024 Gasolina")</td></tr>
+                        <tr><td><code>month</code></td><td>string</td><td>JSON body <span class="param-required">required</span></td><td>Reference month date (YYYY-MM-DD, e.g. "2024-01-01")</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> -X POST <span class="code-string">https://your-domain.com/api/price</span> \
+  -H <span class="code-string">"Content-Type: application/json"</span> \
+  -d <span class="code-string">'{"brand": "Volkswagen", "model": "Gol", "year": "2024 Gasolina", "month": "2024-01-01"}'</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">{</span>
+  <span class="code-key">"brand"</span>: <span class="code-string">"Volkswagen"</span>,
+  <span class="code-key">"model"</span>: <span class="code-string">"Gol 1.0 12V MCV"</span>,
+  <span class="code-key">"year"</span>: <span class="code-string">"2024 Gasolina"</span>,
+  <span class="code-key">"month"</span>: <span class="code-string">"janeiro/2024"</span>,
+  <span class="code-key">"month_date"</span>: <span class="code-string">"2024-01-01"</span>,
+  <span class="code-key">"price"</span>: <span class="code-number">56789.00</span>,
+  <span class="code-key">"price_formatted"</span>: <span class="code-string">"R$ 56.789,00"</span>,
+  <span class="code-key">"fipe_code"</span>: <span class="code-string">"026011-6"</span>
+<span class="code-bracket">}</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>400</td><td>Missing required parameters (brand, model, year, month)</td></tr>
+                    <tr><td>404</td><td>No price found for the given combination</td></tr>
+                    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Database query failed</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== POST /api/economic-indicators ===== -->
+            <section id="post-economic-indicators" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge post">POST</span>
+                    <span class="endpoint-path">/api/economic-indicators</span>
+                </div>
+                <p class="endpoint-description">Get IPCA (inflation) and CDI (interest rate) data for a date range. Data is sourced from Brazil's Central Bank (BCB) API.</p>
+                <span class="rate-limit-badge">60 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <table class="params-table">
+                    <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>start_date</code></td><td>string</td><td>JSON body <span class="param-required">required</span></td><td>Start date (YYYY-MM-DD)</td></tr>
+                        <tr><td><code>end_date</code></td><td>string</td><td>JSON body <span class="param-required">required</span></td><td>End date (YYYY-MM-DD)</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> -X POST <span class="code-string">https://your-domain.com/api/economic-indicators</span> \
+  -H <span class="code-string">"Content-Type: application/json"</span> \
+  -d <span class="code-string">'{"start_date": "2023-01-01", "end_date": "2024-01-01"}'</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">{</span>
+  <span class="code-key">"ipca"</span>: <span class="code-bracket">[</span>
+    <span class="code-bracket">{</span><span class="code-key">"date"</span>: <span class="code-string">"2023-01-01"</span>, <span class="code-key">"value"</span>: <span class="code-number">0.53</span><span class="code-bracket">}</span>,
+    <span class="code-bracket">{</span><span class="code-key">"date"</span>: <span class="code-string">"2023-02-01"</span>, <span class="code-key">"value"</span>: <span class="code-number">0.84</span><span class="code-bracket">}</span>
+  <span class="code-bracket">]</span>,
+  <span class="code-key">"cdi"</span>: <span class="code-bracket">[</span>
+    <span class="code-bracket">{</span><span class="code-key">"date"</span>: <span class="code-string">"2023-01-01"</span>, <span class="code-key">"value"</span>: <span class="code-number">1.12</span><span class="code-bracket">}</span>,
+    <span class="code-bracket">{</span><span class="code-key">"date"</span>: <span class="code-string">"2023-02-01"</span>, <span class="code-key">"value"</span>: <span class="code-number">0.92</span><span class="code-bracket">}</span>
+  <span class="code-bracket">]</span>
+<span class="code-bracket">}</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>400</td><td>Missing <code>start_date</code> or <code>end_date</code></td></tr>
+                    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Failed to fetch data from BCB API</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== GET /api/depreciation-analysis ===== -->
+            <section id="get-depreciation-analysis" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge get">GET</span>
+                    <span class="endpoint-path">/api/depreciation-analysis</span>
+                </div>
+                <p class="endpoint-description">Get market-wide depreciation statistics, optionally filtered by brand or year. Returns average depreciation rates across all vehicles in the database.</p>
+                <span class="rate-limit-badge">20 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <table class="params-table">
+                    <thead><tr><th>Name</th><th>Type</th><th>In</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>brand_id</code></td><td>integer</td><td>Query string <span class="param-optional">optional</span></td><td>Filter by brand ID</td></tr>
+                        <tr><td><code>year_id</code></td><td>integer</td><td>Query string <span class="param-optional">optional</span></td><td>Filter by year ID</td></tr>
+                    </tbody>
+                </table>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> <span class="code-string">"https://your-domain.com/api/depreciation-analysis?brand_id=59"</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">{</span>
+  <span class="code-key">"analysis_type"</span>: <span class="code-string">"by_brand"</span>,
+  <span class="code-key">"data"</span>: <span class="code-bracket">[</span>
+    <span class="code-bracket">{</span>
+      <span class="code-key">"name"</span>: <span class="code-string">"Volkswagen"</span>,
+      <span class="code-key">"avg_depreciation"</span>: <span class="code-number">-12.5</span>,
+      <span class="code-key">"vehicle_count"</span>: <span class="code-number">45</span>,
+      <span class="code-key">"best_retention"</span>: <span class="code-string">"Golf GTI"</span>,
+      <span class="code-key">"worst_retention"</span>: <span class="code-string">"Fox"</span>
+    <span class="code-bracket">}</span>
+  <span class="code-bracket">]</span>
+<span class="code-bracket">}</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>404</td><td>No depreciation data available</td></tr>
+                    <tr><td>429</td><td>Rate limit exceeded</td></tr>
+                    <tr><td>500</td><td>Database query failed</td></tr>
+                </table>
+            </section>
+
+            <!-- ===== GET /health ===== -->
+            <section id="get-health" class="api-docs-section">
+                <div class="endpoint-header">
+                    <span class="method-badge get">GET</span>
+                    <span class="endpoint-path">/health</span>
+                </div>
+                <p class="endpoint-description">Health check endpoint for monitoring and load balancers. Returns service status and database connectivity.</p>
+                <span class="rate-limit-badge">60 requests/minute</span>
+
+                <h3>Parameters</h3>
+                <div class="no-params">No parameters required.</div>
+
+                <h3>Request</h3>
+                <div class="api-code-block">
+                    <span class="code-label">bash</span>
+<span class="code-keyword">curl</span> <span class="code-string">https://your-domain.com/health</span></div>
+
+                <div class="response-header">Response <span class="response-status success">200 OK</span></div>
+                <div class="api-code-block">
+                    <span class="code-label">json</span>
+<span class="code-bracket">{</span>
+  <span class="code-key">"status"</span>: <span class="code-string">"healthy"</span>,
+  <span class="code-key">"timestamp"</span>: <span class="code-string">"2024-06-15T10:30:00"</span>,
+  <span class="code-key">"service"</span>: <span class="code-string">"fipe-price-tracker"</span>,
+  <span class="code-key">"checks"</span>: <span class="code-bracket">{</span>
+    <span class="code-key">"database"</span>: <span class="code-string">"ok"</span>
+  <span class="code-bracket">}</span>
+<span class="code-bracket">}</span></div>
+
+                <h3>Errors</h3>
+                <table class="error-table">
+                    <tr><td>503</td><td>Service Unavailable — database connection failed</td></tr>
+                </table>
+            </section>
+
+        </main>
+    </div>
+
+    <footer>
+        <div class="container text-center">
+            <p class="mb-0">
+                Data from <a href="https://veiculos.fipe.org.br/" target="_blank" rel="noopener noreferrer">FIPE Table</a>
+            </p>
+            <p class="mb-0 mt-2">
+                <i class="bi bi-code-slash"></i>
+                Built with <a href="https://www.anthropic.com" target="_blank" rel="noopener noreferrer">Claude</a>
+                <i class="bi bi-dot"></i>
+                Flask + Python
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script nonce="{{ g.csp_nonce }}">
+    (function() {
+        // Theme toggle (same logic as index.html, without Plotly chart update)
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = themeToggle.querySelector('i');
+        const themeText = themeToggle.querySelector('.theme-toggle-text');
+        const navbarLogo = document.getElementById('navbarLogo');
+        const html = document.documentElement;
+
+        function getInitialTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) return savedTheme;
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+            return 'light';
+        }
+
+        function applyTheme(theme) {
+            html.setAttribute('data-theme', theme);
+            if (theme === 'dark') {
+                themeIcon.classList.remove('bi-sun-fill');
+                themeIcon.classList.add('bi-moon-stars-fill');
+                themeText.textContent = 'Escuro';
+            } else {
+                themeIcon.classList.remove('bi-moon-stars-fill');
+                themeIcon.classList.add('bi-sun-fill');
+                themeText.textContent = 'Claro';
+            }
+            if (navbarLogo) {
+                navbarLogo.src = theme === 'dark' ? navbarLogo.dataset.dark : navbarLogo.dataset.light;
+            }
+        }
+
+        function toggleTheme() {
+            const currentTheme = html.getAttribute('data-theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        }
+
+        applyTheme(getInitialTheme());
+        themeToggle.addEventListener('click', toggleTheme);
+
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+                if (!localStorage.getItem('theme')) applyTheme(e.matches ? 'dark' : 'light');
+            });
+        }
+
+        // Sidebar active link tracking on scroll
+        const sections = document.querySelectorAll('.api-docs-section');
+        const sidebarLinks = document.querySelectorAll('.api-docs-sidebar-link');
+
+        window.addEventListener('scroll', function() {
+            let current = '';
+            sections.forEach(function(section) {
+                if (window.scrollY >= section.offsetTop - 150) {
+                    current = section.getAttribute('id');
+                }
+            });
+            sidebarLinks.forEach(function(link) {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
+
+        // Mobile nav select
+        var mobileNav = document.getElementById('mobileNavSelect');
+        if (mobileNav) {
+            mobileNav.addEventListener('change', function() {
+                if (this.value) {
+                    document.querySelector(this.value).scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        }
+    })();
+    </script>
+</body>
+</html>
