@@ -8,7 +8,7 @@ It uses cascading dropdowns and Plotly charts for interactive visualization.
 from flask import Flask, render_template, jsonify, request, session, g
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from flask_wtf.csrf import CSRFProtect, validate_csrf
+from flask_wtf.csrf import CSRFProtect, CSRFError, validate_csrf
 from wtforms import ValidationError
 from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
@@ -249,6 +249,29 @@ limiter = Limiter(
 # Session-based requests (web browsers) require CSRF tokens
 # API key authenticated requests (external clients) are exempt
 csrf = CSRFProtect(app)
+
+
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    """
+    Handle CSRF validation errors for API and non-API requests.
+
+    POST API endpoints use @csrf.exempt as the primary CSRF exemption mechanism
+    (non-browser requests like curl/Postman are not vulnerable to CSRF).
+    This error handler provides proper JSON responses for any CSRF errors that
+    reach API endpoints (e.g., browser requests with invalid/missing CSRF tokens).
+    """
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'error': 'CSRF validation failed',
+            'message': str(e.description)
+        }), 400
+
+    # Non-API requests get the default error response
+    return jsonify({
+        'error': 'CSRF validation failed',
+        'message': 'The form submission could not be validated. Please reload the page and try again.'
+    }), 400
 
 
 def get_db():
