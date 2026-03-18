@@ -73,3 +73,13 @@ coverage.xml
 
 # Documentation
 docs/_build/
+
+# Files with hardcoded local paths
+setup.bat
+docs/ENV_SETUP.md
+
+# Worktrees
+.worktrees/
+
+# Superpowers brainstorm
+.superpowers/
