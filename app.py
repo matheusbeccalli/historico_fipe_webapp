@@ -744,6 +744,23 @@ def index():
     )
 
 
+@app.route('/api/docs')
+@limiter.limit("20 per minute")
+def api_docs():
+    """
+    API documentation page.
+
+    Serves a comprehensive API reference for external developers.
+    """
+    if not hasattr(g, 'csp_nonce'):
+        g.csp_nonce = secrets.token_urlsafe(16)
+
+    return render_template(
+        'api_docs.html',
+        ga_measurement_id=app.config.get('GA_MEASUREMENT_ID', '')
+    )
+
+
 @app.route('/health')
 @limiter.limit("60 per minute")  # Higher limit for health checks
 def health():

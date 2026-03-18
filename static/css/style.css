@@ -1486,3 +1486,384 @@ footer,
 #depreciationAnalysis .text-muted {
     color: var(--color-text-secondary) !important;
 }
+
+/* ========================================
+   24. Navbar Right Section (API link + theme toggle)
+   ======================================== */
+.navbar-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.navbar-api-link {
+    color: #6c5ce7;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.8125rem;
+    transition: all var(--transition-base);
+    padding: 0.375rem 0;
+}
+
+.navbar-api-link:hover {
+    color: #5b4cdb;
+}
+
+.navbar-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(128, 128, 128, 0.2);
+}
+
+/* ========================================
+   25. API Documentation Page
+   ======================================== */
+.api-docs-layout {
+    display: flex;
+    min-height: calc(100vh - 120px);
+}
+
+.api-docs-sidebar {
+    width: 250px;
+    min-width: 250px;
+    position: sticky;
+    top: 120px;
+    height: calc(100vh - 120px);
+    overflow-y: auto;
+    padding: 1.5rem 1rem;
+    border-right: 1px solid var(--color-border-light);
+    background: var(--color-bg-primary);
+}
+
+.api-docs-sidebar-title {
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: var(--color-accent);
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+}
+
+.api-docs-sidebar-category {
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: 0.5rem;
+    margin-top: 1.25rem;
+    padding: 0 0.5rem;
+    font-weight: 600;
+}
+
+.api-docs-sidebar-category:first-of-type {
+    margin-top: 0;
+}
+
+.api-docs-sidebar-link {
+    display: block;
+    padding: 0.375rem 0.5rem;
+    border-radius: 6px;
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-size: 0.8125rem;
+    transition: all var(--transition-fast);
+    margin-bottom: 0.125rem;
+}
+
+.api-docs-sidebar-link:hover {
+    background: var(--color-bg-secondary);
+    color: var(--color-accent);
+}
+
+.api-docs-sidebar-link.active {
+    background: rgba(108, 92, 231, 0.12);
+    color: var(--color-accent);
+    font-weight: 500;
+}
+
+.api-docs-sidebar-link .method-badge-sm {
+    font-size: 0.625rem;
+    font-weight: 700;
+    margin-right: 0.25rem;
+}
+
+.method-get { color: #27ae60; }
+.method-post { color: #2980b9; }
+
+.api-docs-main {
+    flex: 1;
+    padding: 2rem 2.5rem;
+    max-width: 900px;
+}
+
+.api-docs-section {
+    margin-bottom: 3rem;
+    scroll-margin-top: 130px;
+}
+
+.api-docs-section h2 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--color-border-light);
+}
+
+.api-docs-section h3 {
+    font-size: 1.125rem;
+    margin-bottom: 0.75rem;
+}
+
+.api-docs-section p {
+    color: var(--color-text-secondary);
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    font-size: 0.9375rem;
+}
+
+.endpoint-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.method-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+}
+
+.method-badge.get { background: #27ae60; }
+.method-badge.post { background: #2980b9; }
+
+.endpoint-path {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    color: var(--color-text-primary);
+}
+
+.endpoint-description {
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+    font-size: 0.9375rem;
+}
+
+.rate-limit-badge {
+    display: inline-block;
+    background: rgba(241, 196, 15, 0.15);
+    color: #f39c12;
+    padding: 0.1875rem 0.625rem;
+    border-radius: 4px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+}
+
+.params-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.25rem;
+    font-size: 0.875rem;
+}
+
+.params-table th {
+    text-align: left;
+    padding: 0.625rem 0.75rem;
+    background: var(--color-bg-secondary);
+    border-bottom: 2px solid var(--color-border-light);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.params-table td {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--color-border-light);
+    vertical-align: top;
+}
+
+.params-table code {
+    background: var(--color-bg-secondary);
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+    font-size: 0.8125rem;
+    color: var(--color-accent);
+}
+
+.param-required {
+    color: #e74c3c;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.param-optional {
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+}
+
+.no-params {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border-light);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+    font-size: 0.8125rem;
+    margin-bottom: 1.25rem;
+}
+
+.api-code-block {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+    font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin-bottom: 1.25rem;
+    position: relative;
+    white-space: pre;
+}
+
+.api-code-block .code-label {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c7086;
+}
+
+.code-keyword { color: #89b4fa; }
+.code-string { color: #a6e3a1; }
+.code-number { color: #fab387; }
+.code-comment { color: #6c7086; }
+.code-key { color: #89b4fa; }
+.code-bracket { color: #585b70; }
+
+.response-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.response-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.response-status.success { color: #27ae60; }
+.response-status.error { color: #e74c3c; }
+
+.error-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    margin-bottom: 1.25rem;
+}
+
+.error-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.error-table td:first-child {
+    width: 60px;
+    font-weight: 600;
+    color: #e74c3c;
+}
+
+.rate-limits-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.25rem;
+    font-size: 0.875rem;
+}
+
+.rate-limits-table th {
+    text-align: left;
+    padding: 0.625rem 0.75rem;
+    background: var(--color-bg-secondary);
+    border-bottom: 2px solid var(--color-border-light);
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    font-weight: 600;
+}
+
+.rate-limits-table td {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--color-border-light);
+}
+
+.rate-limits-table code {
+    background: var(--color-bg-secondary);
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+    font-size: 0.8125rem;
+}
+
+/* Mobile responsive for API docs */
+@media (max-width: 768px) {
+    .api-docs-sidebar {
+        display: none;
+    }
+
+    .api-docs-mobile-nav {
+        display: block;
+        padding: 1rem;
+        background: var(--color-bg-secondary);
+        border-bottom: 1px solid var(--color-border-light);
+    }
+
+    .api-docs-main {
+        padding: 1.5rem 1rem;
+    }
+
+    .endpoint-header {
+        flex-wrap: wrap;
+    }
+
+    .endpoint-path {
+        font-size: 0.875rem;
+    }
+
+    .params-table {
+        font-size: 0.8125rem;
+    }
+}
+
+@media (min-width: 769px) {
+    .api-docs-mobile-nav {
+        display: none;
+    }
+}
+
+/* Dark mode for API docs */
+[data-theme="dark"] .api-docs-sidebar {
+    background: var(--color-bg-secondary);
+    border-right-color: var(--color-border);
+}
+
+[data-theme="dark"] .navbar-api-link {
+    color: #a29bfe;
+}
+
+[data-theme="dark"] .navbar-api-link:hover {
+    color: #b8b3ff;
+}
+
+[data-theme="dark"] .navbar-divider {
+    background: rgba(128, 128, 128, 0.3);
+}

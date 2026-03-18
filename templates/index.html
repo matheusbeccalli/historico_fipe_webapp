@@ -96,10 +96,14 @@
                      data-light="{{ url_for('static', filename='img/logo-light.png') }}"
                      data-dark="{{ url_for('static', filename='img/logo-dark.png') }}">
             </span>
-            <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
-                <i class="bi bi-sun-fill"></i>
-                <span class="theme-toggle-text">Claro</span>
-            </button>
+            <div class="navbar-right">
+                <a href="{{ url_for('api_docs') }}" class="navbar-api-link">API Docs</a>
+                <div class="navbar-divider"></div>
+                <button id="themeToggle" class="theme-toggle" aria-label="Alternar tema">
+                    <i class="bi bi-sun-fill"></i>
+                    <span class="theme-toggle-text">Claro</span>
+                </button>
+            </div>
         </div>
     </nav>
 
