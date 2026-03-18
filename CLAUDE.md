@@ -1,4 +1,4 @@
-1# CLAUDE.md
+# CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -12,7 +12,8 @@ This is a Flask web application that displays historical car price data from the
 - Market-wide depreciation analysis
 - Dark/light mode theme support
 - Intelligent bidirectional filtering (select model or year first)
-- Security hardening with CSP, API key authentication, and rate limiting
+- Public API with documentation page at `/api/docs`
+- Security hardening with CSP, CSRF protection, and rate limiting
 
 ## Development Tools & Agents
 
@@ -64,7 +65,7 @@ Serena maintains project knowledge in memory files:
 - `codebase_structure.md` - File organization and responsibilities
 - `code_style_conventions.md` - Coding standards and patterns
 - `architecture_patterns.md` - Database patterns, API design, security
-- `suggested_commands.md` - Development commands for Windows
+- `suggested_commands.md` - Development commands
 - `task_completion_checklist.md` - Quality checks and workflow
 
 **Read these memories when:**
@@ -79,105 +80,21 @@ This project includes **4 specialized agents** in `.claude/agents/` that should 
 
 **Note:** For code review, use the `superpowers:requesting-code-review` skill available through the superpowers plugin system.
 
-#### 1. 📊 data-analyst-sql
+#### 1. data-analyst-sql
 **When to use:** For data analysis, SQL queries, insights, or query optimization
 
-**Capabilities:**
-- Writing efficient SQLAlchemy ORM queries
-- Analyzing price trends and patterns
-- Query optimization and performance tuning
-- Statistical analysis and insights
-- Database exploration and relationship analysis
-
-**Use for:**
-- Analyzing FIPE price trends
-- Optimizing slow queries
-- Exploring data patterns
-- Generating reports or insights
-- Understanding data relationships
-
-**Example:**
-```
-User: "Which brands have the most stable prices?"
-Assistant: "I'll use the data-analyst-sql agent to analyze price volatility across brands."
-```
-
-#### 2. 🐛 debug-specialist
+#### 2. debug-specialist
 **When to use:** For errors, exceptions, test failures, or unexpected behavior
 
-**Capabilities:**
-- Systematic root cause analysis
-- Stack trace interpretation
-- Strategic debug logging insertion
-- Minimal fix implementation
-- Verification and prevention recommendations
-
-**Use when encountering:**
-- 500 errors or API failures
-- Unexpected behavior (wrong data, incorrect charts)
-- Application crashes or exceptions
-- Database connection issues
-- Test failures
-
-**Example:**
-```
-User: "Getting a 500 error on /api/compare-vehicles"
-Assistant: "Let me use the debug-specialist agent to investigate this error."
-```
-
-#### 3. 🎯 feature-implementation-planner
+#### 3. feature-implementation-planner
 **When to use:** Planning implementation of features from the project roadmap
 
-**Capabilities:**
-- Deep feature analysis and requirements breakdown
-- Phased implementation strategy (Database → Backend → Frontend → Testing)
-- Architecture-aware planning (respects existing patterns)
-- Risk assessment and dependency mapping
-- Code-level guidance with exact file locations
-
-**Use for:**
-- Planning new features from the roadmap
-- Breaking down complex features into steps
-- Understanding dependencies between features
-- Creating implementation checklists
-
 **Roadmap Location:**
-- **Active development**: Linear project "FIPE Webapp" (https://linear.app/matheusbeccalli/project/fipe-webapp-4eddfec3d2e9)
-- **Feature ideas**: "Melhorias Futuras" section in README.md (for reference and community visibility)
+- **Active development**: Linear project "FIPE Webapp"
+- **Feature ideas**: "Melhorias Futuras" section in README.md
 
-**Example:**
-```
-User: "Let's implement the vehicle comparison feature"
-Assistant: "I'll use the feature-implementation-planner agent to create a detailed plan."
-```
-
-#### 4. 🧪 e2e-testing-specialist
+#### 4. e2e-testing-specialist
 **When to use:** For end-to-end testing, UI validation, and browser automation
-
-**Capabilities:**
-- Browser automation using Playwright MCP
-- User interface functionality testing
-- API integration validation
-- Visual regression testing (screenshots)
-- Performance metrics collection
-- Console error detection
-- Multi-viewport testing (desktop, mobile)
-
-**Use for:**
-- Testing complete user flows (brand → model → year → chart)
-- Validating dropdown cascading and bidirectional filtering
-- Checking multi-vehicle comparison feature
-- Testing theme toggle (light/dark mode)
-- Verifying economic indicators integration
-- Post-deployment smoke testing
-- Regression testing after bug fixes
-
-**Example:**
-```
-User: "Test that the vehicle selection workflow works correctly"
-Assistant: "I'll use the e2e-testing-specialist agent to automate and validate the complete flow."
-```
-
 
 ### Best Practices for Tool Usage
 
@@ -186,57 +103,27 @@ Assistant: "I'll use the e2e-testing-specialist agent to automate and validate t
 2. **Second**: Use Serena's `find_symbol` to read specific functions/classes
 3. **Last resort**: Read entire files only when necessary
 
-**When implementing features:**
-1. Use `feature-implementation-planner` agent to create detailed plan
-2. Use Serena MCP for symbol-based code navigation and editing
-3. Use `e2e-testing-specialist` agent to validate functionality
-4. Use `debug-specialist` agent if encountering issues
-5. Use `superpowers:requesting-code-review` skill for quality assurance after major changes
-
-**When analyzing data or queries:**
-1. Use `data-analyst-sql` agent for insights and optimization
-2. Use Serena's `find_symbol` to understand existing query patterns
-3. Use `superpowers:requesting-code-review` skill to validate query security and performance
-
-**When testing:**
-1. Use `e2e-testing-specialist` agent for user flow validation
-2. Test after implementing new features or fixing bugs
-3. Run smoke tests before deployment
-4. Use screenshots and console logs for debugging
-
 **General workflow:**
-1. **Plan** → Use feature-implementation-planner for new features
-2. **Navigate** → Use Serena MCP for code exploration
-3. **Implement** → Use Serena's symbol editing for changes
-4. **Test** → Use e2e-testing-specialist for validation
-5. **Debug** → Use debug-specialist agent if issues arise
-6. **Analyze** → Use data-analyst-sql for insights and optimization
-7. **Review** → Use superpowers:requesting-code-review skill for quality assurance after major changes
+1. **Plan** - Use feature-implementation-planner for new features
+2. **Navigate** - Use Serena MCP for code exploration
+3. **Implement** - Use Serena's symbol editing for changes
+4. **Test** - Use e2e-testing-specialist for validation
+5. **Debug** - Use debug-specialist agent if issues arise
+6. **Review** - Use superpowers:requesting-code-review skill after major changes
 
 ## Key Commands
 
 ### Development
 ```bash
 # Activate virtual environment
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
 
 # Run the application (development mode with auto-reload)
 python app.py
 
 # Install dependencies
 pip install -r requirements.txt
-```
-
-### Quick Setup
-```bash
-# Windows:
-setup.bat
-
-# Linux/Mac:
-chmod +x setup.sh && ./setup.sh
 ```
 
 ### Environment Configuration
@@ -246,9 +133,6 @@ cp .env.example .env
 
 # Generate a secure secret key for production
 python generate_secret_key.py
-
-# Generate a secure API key
-python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
 ## Architecture Overview
@@ -279,30 +163,29 @@ Brands (1:N) → CarModels (1:N) → ModelYears (1:N) → CarPrices
 - `CarPrice` → `ModelYear` → `CarModel` → `Brand`
 - `CarPrice` → `ReferenceMonth`
 
-This join pattern is used throughout the application (see app.py:244-256).
+This join pattern is used throughout the application (search for `join(CarPrice.reference_month)` in app.py).
 
 ### Configuration System
 
 The application uses **environment-based configuration** with `.env` files:
 - All sensitive configuration is stored in `.env` (never committed to git)
 - `config.py` loads environment variables using `python-dotenv`
-- `DevelopmentConfig` (default) - SQLite database
+- `DevelopmentConfig` (default) - SQLite database in `data/fipe_data.db`
 - `ProductionConfig` - PostgreSQL database
 - Controlled via `FLASK_ENV` environment variable
 
 **Important environment variables**:
 - `DATABASE_URL` - Database connection string
 - `SECRET_KEY` - Flask session secret (use `generate_secret_key.py` to create)
-- `API_KEY` - Application's own API key (injected into frontend for API calls)
-- `API_KEYS_ALLOWED` - Comma-separated list of valid API keys (must include API_KEY)
 - `DEFAULT_BRAND` - Default brand to show on page load
 - `DEFAULT_MODEL` - Default model to show on page load
+- `GA_MEASUREMENT_ID` - Google Analytics 4 measurement ID (optional)
 - `SQLALCHEMY_ECHO` - Set to "True" to see SQL queries in logs
 
 ### API Design Pattern
 
 All API endpoints follow a consistent pattern:
-1. Create database session via `get_db()` helper (app.py:30)
+1. Create database session via `get_db()` helper
 2. Perform query using SQLAlchemy ORM
 3. Close session in `finally` block
 4. Return JSON response
@@ -317,53 +200,30 @@ The frontend uses a **bidirectional filtering pattern** with cascading dropdowns
 3. User can select model first (filters years) OR year first (filters models)
 4. POST to `/api/compare-vehicles` with all selections to render multi-vehicle comparison chart
 
-This pattern is implemented in `static/js/app.js` and ensures the UI remains responsive with minimal data transfer. The `/api/vehicle-options` endpoint returns a `model_year_lookup` object that enables efficient bidirectional filtering on the client side.
+This pattern is implemented in `static/js/app.js`. The `/api/vehicle-options` endpoint returns a `model_year_lookup` object that enables efficient bidirectional filtering on the client side.
 
 ## File Structure and Responsibilities
 
 ```
 historico_fipe_webapp/
-├── app.py                      # Main Flask application
+├── app.py                      # Main Flask application (~1800 lines)
 ├── config.py                   # Environment-based configuration
 ├── webapp_database_models.py   # SQLAlchemy ORM models
 ├── generate_secret_key.py      # Secure key generator
 ├── .env                        # Environment variables (not in git)
 ├── .env.example                # Environment template
 │
-├── templates/                  # HTML templates
-│   └── index.html             # Single-page application
+├── templates/
+│   ├── index.html             # Main single-page application
+│   └── api_docs.html          # API documentation page
 │
-├── static/                     # Frontend assets
+├── static/
 │   ├── js/app.js              # JavaScript for API calls and charts
 │   └── css/style.css          # Custom styles
 │
-└── docs/                       # Documentation
-    ├── README.md              # Documentation index
-    ├── database_schema.md     # Database structure reference
-    └── ENV_SETUP.md           # Environment configuration guide
+└── docs/
+    └── database_schema.md     # Database structure reference
 ```
-
-### Core Application Files
-
-- **app.py** (413 lines) - Main Flask application with all routes and API endpoints
-- **config.py** - Environment-based configuration system using python-dotenv
-- **webapp_database_models.py** (457 lines) - SQLAlchemy ORM models with relationships
-- **.env** - Environment variables (not committed to git, copy from .env.example)
-
-### Frontend Files
-
-- **templates/index.html** - Single-page application template
-- **static/js/app.js** - Handles all API calls, dropdown cascading, and chart rendering
-- **static/css/style.css** - Custom styles
-
-### Documentation
-
-- **docs/database_schema.md** - Complete database schema documentation with ERD
-- **docs/ENV_SETUP.md** - Comprehensive environment configuration guide
-
-### Utilities
-
-- **generate_secret_key.py** - Helper script to generate secure random keys for Flask SECRET_KEY
 
 ## Critical Implementation Details
 
@@ -373,7 +233,7 @@ Dates are stored as `YYYY-MM-DD` in the database but must be displayed in Portug
 - Database: `2024-01-01`
 - Display: `janeiro/2024`
 
-Use `format_month_portuguese()` helper function (webapp_database_models.py:387) for conversion.
+Use `format_month_portuguese()` helper function in `webapp_database_models.py` for conversion.
 
 ### Price Formatting
 
@@ -381,11 +241,11 @@ Prices are stored as floats but must be displayed in Brazilian Real format:
 - Database: `11520.00`
 - Display: `R$ 11.520,00`
 
-Use `format_price_brl()` helper function (webapp_database_models.py:341) for conversion.
+Use `format_price_brl()` helper function in `webapp_database_models.py` for conversion.
 
 ### Default Car Selection
 
-The application loads with a default car (configured via `DEFAULT_BRAND` and `DEFAULT_MODEL` environment variables in `.env`). The `/api/default-car` endpoint (app.py:308) uses fuzzy matching with `ILIKE` to find models containing the configured model name.
+The application loads with a default car (configured via `DEFAULT_BRAND` and `DEFAULT_MODEL` environment variables in `.env`). The `/api/default-car` endpoint uses fuzzy matching with `ILIKE` to find models containing the configured model name.
 
 ### Error Handling Pattern
 
@@ -400,41 +260,41 @@ All API routes use try-finally blocks to ensure database sessions are always clo
 
 Follow the existing pattern in app.py:
 1. Create route with `@app.route()` decorator
-2. Get database session with `get_db()`
-3. Build query using SQLAlchemy ORM with proper joins
-4. Return `jsonify()` response
-5. Always use `try-finally` to close session
+2. Add `@limiter.limit()` for rate limiting
+3. Get database session with `get_db()`
+4. Build query using SQLAlchemy ORM with proper joins
+5. Return `jsonify()` response
+6. Always use `try-finally` to close session
+7. For POST endpoints: add `@csrf.exempt` if the endpoint should be callable by external consumers
 
 ### API Endpoints Reference
 
-The application provides 11 RESTful endpoints (all require `X-API-Key` header except `/` and `/health`):
+The application provides these RESTful endpoints (all rate-limited by IP, API is public with no authentication required):
+
+**Pages:**
+- **GET /** - Main page
+- **GET /api/docs** - API documentation page
 
 **Vehicle Data:**
-1. **GET /api/brands** - List all brands available in the most recent FIPE table
-2. **GET /api/vehicle-options/<brand_id>** - Get models and years for a brand with bidirectional filtering support
-3. **GET /api/months** - List all available reference months
-4. **GET /api/default-car** - Get default vehicle selection (returns names + IDs)
+- **GET /api/brands** - List all brands available in the most recent FIPE table
+- **GET /api/vehicle-options/<brand_id>** - Get models and years for a brand with bidirectional filtering support
+- **GET /api/months** - List all available reference months
+- **GET /api/default-car** - Get default vehicle selection (returns names + IDs)
 
 **Price & History:**
-5. **POST /api/compare-vehicles** - Get price history for multiple vehicles (up to 5)
-6. **POST /api/price** - Get single price point for a vehicle at a specific month
+- **POST /api/compare-vehicles** - Get price history for multiple vehicles (up to 5)
+- **POST /api/price** - Get single price point for a vehicle at a specific month
 
 **Economic & Market Analysis:**
-7. **POST /api/economic-indicators** - Get IPCA and CDI data for date ranges
-8. **POST /api/depreciation-analysis** - Get market-wide depreciation statistics by brand/year
+- **POST /api/economic-indicators** - Get IPCA and CDI data for date ranges
+- **GET /api/depreciation-analysis** - Get market-wide depreciation statistics by brand/year
 
 **System:**
-9. **GET /health** - Health check endpoint for monitoring and load balancers
-10. **GET /** - Main page (no authentication required)
-
-**Deprecated (Removed):**
-- ~~GET /api/models/<brand_id>~~ - Replaced by `/api/vehicle-options/<brand_id>`
-- ~~GET /api/years/<model_id>~~ - Replaced by `/api/vehicle-options/<brand_id>`
-- ~~POST /api/chart-data~~ - Replaced by `/api/compare-vehicles`
+- **GET /health** - Health check endpoint for monitoring and load balancers
 
 ### Single Price Lookup Endpoint
 
-The `/api/price` endpoint (app.py:308) provides direct price lookups similar to FIPE's `/ConsultarValorComTodosParametros`:
+The `/api/price` endpoint provides direct price lookups similar to FIPE's `/ConsultarValorComTodosParametros`:
 
 **Request:**
 ```json
@@ -498,8 +358,6 @@ query = (
 )
 ```
 
-This pattern is fundamental to the application - see app.py:244-266 for the canonical implementation.
-
 ### Filtering by Date Range
 
 ```python
@@ -517,58 +375,11 @@ The webapp should **NEVER** perform INSERT, UPDATE, or DELETE operations. The da
 
 ### Data Availability
 
-Not all vehicle/month combinations exist in the database. Always check if query results are empty before processing (see app.py:272-275).
+Not all vehicle/month combinations exist in the database. Always check if query results are empty before processing.
 
 ### Session Management
 
-Always close database sessions in `finally` blocks. Unclosed sessions will cause connection pool exhaustion. The `get_db()` helper (app.py:30-42) demonstrates the correct pattern.
-
-## API Authentication
-
-### API Key System
-
-The application uses a **two-variable API key system** for authentication:
-
-1. **`API_KEY`** - The application's own key, injected into the frontend JavaScript (`window.API_KEY`) for automatic authentication of browser requests
-2. **`API_KEYS_ALLOWED`** - Comma-separated list of ALL valid API keys that can access the API (must include `API_KEY` plus any external client keys)
-
-**How it works:**
-- All API endpoints (except the index page `/`) require authentication via the `@require_api_key` decorator
-- API key must be provided in the `X-API-Key` HTTP header
-- Frontend automatically includes the key from `window.API_KEY` in all fetch requests
-- If no keys are configured, the app allows access in development mode with a warning
-
-**Configuration example (.env):**
-```bash
-# Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"
-API_KEY=your-app-key-abc123xyz
-
-# Include API_KEY plus any external client keys
-API_KEYS_ALLOWED=your-app-key-abc123xyz,partner-key-1,partner-key-2
-```
-
-**Logging:**
-- Successful API access: Logs key prefix (first 8 chars), endpoint, method, and IP address
-- Invalid attempts: Logs key prefix, IP address, and attempted endpoint
-- All logs use Flask's standard logger (app.logger)
-
-**Adding API key authentication to new endpoints:**
-```python
-@app.route('/api/new-endpoint', methods=['GET'])
-@require_api_key  # Add this decorator
-def new_endpoint():
-    # Your endpoint code
-    pass
-```
-
-**Frontend JavaScript pattern:**
-```javascript
-const response = await fetch('/api/endpoint', {
-    headers: {
-        'X-API-Key': window.API_KEY  // Automatically included
-    }
-});
-```
+Always close database sessions in `finally` blocks. Unclosed sessions will cause connection pool exhaustion. The `get_db()` helper demonstrates the correct pattern.
 
 ## Security Features
 
@@ -581,156 +392,36 @@ The application implements multiple layers of security:
 - External scripts whitelisted from trusted CDNs (cdn.plot.ly, cdn.jsdelivr.net)
 - Inline styles allowed for Plotly compatibility (lower XSS risk than scripts)
 
-**CSP Directives** (app.py:592-641):
-```python
-csp_directives = [
-    "default-src 'self'",
-    f"script-src 'self' 'nonce-{nonce}' https://cdn.plot.ly https://cdn.jsdelivr.net",
-    f"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
-    "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net",
-    "img-src 'self' data:",
-    "connect-src 'self' https://cdn.plot.ly https://cdn.jsdelivr.net https://api.bcb.gov.br"
-]
-```
-
-**Important**: When adding external resources, update the appropriate CSP directive or they will be blocked by the browser.
-
-### Referrer-Policy Header
-
-**Prevents information leakage** in HTTP headers (app.py:641):
-```python
-response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-```
-
-This ensures that only the origin (not full URL) is sent in the Referer header when navigating to external sites.
+**Important**: When adding external resources, update the appropriate CSP directive in `set_security_headers()` or they will be blocked by the browser.
 
 ### CSRF Protection
 
-**CRITICAL: Dual-mode CSRF protection** for API endpoints that support both session-based (browser) and API key authentication.
+The application uses **Flask-WTF's global CSRF protection** (`CSRFProtect(app)`). The frontend includes a CSRF token meta tag (`{{ csrf_token() }}`) and sends it via `X-CSRFToken` header on POST requests.
 
-**Architecture Decision (October 2025):**
-
-The application uses **Flask-WTF's global CSRF protection** (`CSRFProtect(app)` at app.py:252), but **API endpoints must be exempted** using `@csrf.exempt` to allow API key authentication while maintaining CSRF protection for session-based requests.
-
-**Why This Pattern Is Required:**
-
-1. **Flask middleware order:** `CSRFProtect(app)` runs **before** route decorators, so it intercepts requests before `@require_api_key` can validate API keys
-2. **Two authentication methods:**
-   - **Session-based** (browsers): Vulnerable to CSRF → **Requires CSRF tokens**
-   - **API key-based** (external clients): Not vulnerable to CSRF → **No CSRF tokens needed**
-3. **Exemption is safe:** The `@require_api_key` decorator (app.py:462-583) validates CSRF tokens internally for session-based requests (app.py:480-490)
-
-**Endpoints with @csrf.exempt (DO NOT REMOVE):**
-
-```python
-@app.route('/api/compare-vehicles', methods=['POST'])
-@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
-@require_api_key
-def compare_vehicles():
-    ...
-
-@app.route('/api/price', methods=['POST'])
-@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
-@require_api_key
-def get_price():
-    ...
-
-@app.route('/api/economic-indicators', methods=['POST'])
-@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
-@require_api_key
-def get_economic_indicators():
-    ...
-```
-
-**Security Guarantees:**
-
-| Authentication Method | CSRF Protection | Implementation |
-|----------------------|-----------------|----------------|
-| **API Key** (external clients) | ❌ Not needed | Exempted via `@csrf.exempt` - API keys in headers are not vulnerable to CSRF |
-| **Session** (web browsers) | ✅ Enforced | `@require_api_key` validates CSRF tokens for session auth (app.py:480-490) |
-
-**Testing CSRF Protection:**
-
-```bash
-# ✅ API key request (should work)
-curl -X POST -H "X-API-Key: [key]" -H "Content-Type: application/json" \
-  -d '{"vehicle_ids": [123]}' http://localhost:5000/api/compare-vehicles
-
-# ✅ Session request without CSRF token (should fail with 403)
-curl -X POST -b cookies.txt -H "Content-Type: application/json" \
-  -d '{"vehicle_ids": [123]}' http://localhost:5000/api/compare-vehicles
-# Expected: {"error": "CSRF validation failed", "message": "Invalid or missing CSRF token"}
-```
-
-**IMPORTANT - When Adding New POST Endpoints:**
-
-1. Add `@csrf.exempt` decorator **above** `@require_api_key`
-2. Include the comment: `# Exempt from global CSRF - @require_api_key handles CSRF for session auth`
-3. Do NOT remove `@csrf.exempt` - it breaks API key authentication
-4. Test both authentication methods after adding the endpoint
-
-### Production Logging
-
-**Log rotation prevents disk exhaustion** (app.py:57-85):
-- RotatingFileHandler with 10MB max per file
-- Keeps 10 backup files (100MB total)
-- Logs stored in `logs/fipe_app.log`
-- Only enabled in production mode (`FLASK_ENV=production`)
-
-### Database Schema Validation
-
-**Ensures database integrity on startup** (app.py:120-158):
-- Validates all 5 required tables exist (brands, car_models, model_years, car_prices, reference_months)
-- Application refuses to start if schema is invalid
-- Logs detailed validation results
+**API POST routes are CSRF-exempt** via `@csrf.exempt` to allow external consumers (curl, Postman, server-to-server) to call them directly. A custom `CSRFError` handler returns JSON error responses.
 
 ### Rate Limiting
 
-**Prevents API abuse** using Flask-Limiter with **intelligent rate limit differentiation**:
+**Prevents API abuse** using Flask-Limiter with IP-based rate limiting:
 
-The application applies **different rate limits for browser users vs external API clients**:
-- **Browser users** (using the shared `API_KEY` from `.env`) are rate-limited **by IP address**, with generous per-minute limits for interactive UI usage
-- **External API clients** (using their own unique API keys) are rate-limited **by API key**, with stricter limits to prevent scraping and abuse
+| Endpoint | Rate Limit |
+|----------|-----------|
+| `/api/brands` | 120/minute |
+| `/api/vehicle-options` | 120/minute |
+| `/api/months` | 120/minute |
+| `/api/default-car` | 120/minute |
+| `/api/price` | 60/minute |
+| `/api/compare-vehicles` | 30/minute |
+| `/api/economic-indicators` | 60/minute |
+| `/api/depreciation-analysis` | 20/minute |
+| `/health` | 60/minute |
+| `/` and `/api/docs` | 20/minute |
 
-**Rate Limits by Endpoint:**
+Returns HTTP 429 Too Many Requests when limits exceeded.
 
-| Endpoint | Browser Users | External API Clients |
-|----------|--------------|---------------------|
-| `/api/brands` | 120/minute | 60/minute |
-| `/api/vehicle-options` | 120/minute | 60/minute |
-| `/api/months` | 120/minute | 60/minute |
-| `/api/default-car` | 120/minute | 60/minute |
-| `/api/price` | 60/minute | 20/minute |
-| `/api/compare-vehicles` | 30/minute | 10/minute |
-| `/api/economic-indicators` | 60/minute | 60/hour |
-| `/api/depreciation-analysis` | 20/minute | 10/minute |
-| `/health` | 60/minute | 60/minute |
-| `/` (index page) | 20/minute | 20/minute |
+### Other Security Features
 
-**Implementation Details** (app.py:186-236):
-- `get_rate_limit_key()` distinguishes browser users from API clients based on the API key
-- `make_rate_limit(browser_limit, api_limit)` creates dynamic limit functions per endpoint
-- Browser users identified by matching `request.headers['X-API-Key']` with `app.config['API_KEY']`
-- Returns HTTP 429 Too Many Requests when limits exceeded
-
-### Health Check Endpoint
-
-**Enables monitoring and load balancer integration** (app.py:688-733):
-```bash
-GET /health
-```
-
-Returns JSON with database connectivity status:
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-10-27T10:30:00",
-  "service": "fipe-price-tracker",
-  "checks": {
-    "database": "ok",
-    "session": "unknown"
-  }
-}
-```
-
-Returns HTTP 503 if database connection fails.
+- **Referrer-Policy**: `strict-origin-when-cross-origin` prevents information leakage
+- **Production Logging**: RotatingFileHandler with 10MB max per file, 10 backups
+- **Database Schema Validation**: Validates all 5 required tables exist on startup
+- **Health Check**: `/health` endpoint returns database connectivity status (HTTP 503 if down)
