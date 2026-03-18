@@ -52,15 +52,7 @@ class Config:
     # You can change these to any car in your database
     DEFAULT_BRAND = os.getenv('DEFAULT_BRAND', 'Volkswagen')
     DEFAULT_MODEL = os.getenv('DEFAULT_MODEL', 'Gol')  # Will search for models containing "Gol"
-
-    # API Key Authentication
-    # API_KEY: The application's own API key (used by frontend to make API calls)
-    API_KEY = os.getenv('API_KEY', '')
-
-    # API_KEYS_ALLOWED: Comma-separated list of valid API keys that can access the API
-    # Should include API_KEY plus any external client keys
-    # Example: API_KEYS_ALLOWED=app-key-123,external-key-456,partner-key-789
-    API_KEYS_ALLOWED = os.getenv('API_KEYS_ALLOWED', '')
+    DEFAULT_YEAR = os.getenv('DEFAULT_YEAR', '')  # Optional: exact year description (e.g., "2021 Gasolina")
 
     # CSRF Protection
     WTF_CSRF_ENABLED = True  # Enable CSRF protection for forms

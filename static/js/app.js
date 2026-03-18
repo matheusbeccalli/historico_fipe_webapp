@@ -518,12 +518,7 @@ function clearStatistics() {
  */
 async function loadBrands() {
     try {
-        const response = await fetch('/api/brands', {
-            headers: {
-                'X-API-Key': window.API_KEY
-            },
-            credentials: 'same-origin'
-        });
+        const response = await fetch('/api/brands');
         const brands = await response.json();
         
         const brandSelect = document.getElementById('brandSelect');
@@ -549,12 +544,7 @@ async function loadBrands() {
  */
 async function loadVehicleOptions(brandId) {
     try {
-        const response = await fetch(`/api/vehicle-options/${brandId}`, {
-            headers: {
-                'X-API-Key': window.API_KEY
-            },
-            credentials: 'same-origin'
-        });
+        const response = await fetch(`/api/vehicle-options/${brandId}`);
 
         if (!response.ok) {
             throw new Error(`Failed to load vehicle options: ${response.status} ${response.statusText}`);
@@ -876,6 +866,19 @@ function renderComparisonChart() {
         };
     }).filter(trace => trace !== null);
 
+    // Collect all unique dates and their Portuguese labels for x-axis ticks
+    const dateLabelsMap = new Map();
+    selectedVehicles.forEach(vehicle => {
+        if (!vehicle.data) return;
+        vehicle.data.forEach(d => {
+            if (!dateLabelsMap.has(d.date)) {
+                dateLabelsMap.set(d.date, d.label);
+            }
+        });
+    });
+    const allDates = Array.from(dateLabelsMap.keys()).sort();
+    const allLabels = allDates.map(d => dateLabelsMap.get(d));
+
     // Get theme-aware colors
     const colors = getChartColors();
 
@@ -906,9 +909,11 @@ function renderComparisonChart() {
                 }
             },
             type: 'date',  // Treat x values as dates for proper chronological ordering
+            tickmode: 'array',
+            tickvals: allDates,
+            ticktext: allLabels,
             tickangle: -45,
             automargin: true,
-            nticks: 15,  // Limit number of tick marks to prevent overcrowding
             tickfont: {
                 size: 12,
                 family: 'Inter, -apple-system, sans-serif',
@@ -1198,12 +1203,7 @@ async function updateComparisonStatistics() {
  */
 async function loadDefaultVehicle() {
     try {
-        const response = await fetch('/api/default-car', {
-            headers: {
-                'X-API-Key': window.API_KEY
-            },
-            credentials: 'same-origin'
-        });
+        const response = await fetch('/api/default-car');
         const defaultCar = await response.json();
 
         if (!defaultCar.brand_id || !defaultCar.model_id || !defaultCar.year_id) {
@@ -1282,11 +1282,7 @@ async function initializeApp() {
  */
 async function loadDepreciationAnalysis() {
     try {
-        const response = await fetch('/api/depreciation-analysis?months=12', {
-            headers: {
-                'X-API-Key': window.API_KEY
-            }
-        });
+        const response = await fetch('/api/depreciation-analysis?months=12');
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);

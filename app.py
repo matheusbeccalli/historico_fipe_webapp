@@ -5,7 +5,7 @@ This webapp displays historical car price data from the FIPE database.
 It uses cascading dropdowns and Plotly charts for interactive visualization.
 """
 
-from flask import Flask, render_template, jsonify, request, session, g
+from flask import Flask, render_template, jsonify, request, g
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_wtf.csrf import CSRFProtect, CSRFError, validate_csrf
@@ -15,14 +15,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import SQLAlchemyError, DatabaseError
 from sqlalchemy.pool import QueuePool
 from datetime import datetime, timedelta
-import hashlib
-import hmac
 import logging
 from logging.handlers import RotatingFileHandler
 import os
 import requests
 import secrets
-from functools import reduce, wraps, lru_cache
+from functools import reduce, lru_cache
 from pathlib import Path
 
 # Import our database models and config
@@ -156,98 +154,18 @@ def validate_database_schema():
 # Run schema validation at startup
 validate_database_schema()
 
-# Parse allowed API keys from config and store as a set for fast lookup
-VALID_API_KEYS = set()
-api_keys_str = app.config.get('API_KEYS_ALLOWED', '')
-if api_keys_str:
-    keys = [key.strip() for key in api_keys_str.split(',') if key.strip()]
-
-    # Validate all API keys meet minimum security requirements
-    for key in keys:
-        if len(key) < 16:
-            # Very weak key - log critical warning
-            app.logger.critical(
-                f'SECURITY: API key is dangerously short ({len(key)} chars). '
-                f'Keys should be at least 32 characters. '
-                f'Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
-            )
-        elif len(key) < 32:
-            # Weak key - log warning
-            app.logger.warning(
-                f'API key is weak ({len(key)} chars). '
-                f'Recommended: 32+ characters. '
-                f'Generate with: python -c "import secrets; print(secrets.token_urlsafe(32))"'
-            )
-
-    VALID_API_KEYS = set(keys)
-
-# Custom rate limit key function
-# SECURITY: Rate limit by API key when available (more secure than IP-only)
-def get_rate_limit_key():
-    """
-    Get rate limit key for the current request.
-
-    Browser users (using the shared API_KEY from session) are rate-limited by IP
-    to allow multiple simultaneous users without shared limit exhaustion.
-    External API clients are rate-limited by their unique API key hash.
-
-    Returns:
-        str: Rate limit key in format 'browser-ip:address', 'apikey:hash', or 'ip:address'
-    """
-    api_key = request.headers.get('X-API-Key')
-    
-    # Check if this is a browser user using the shared session-based API key
-    # Browser requests include the API key from window.API_KEY
-    if api_key == app.config.get('API_KEY'):
-        # Browser users: rate limit by IP (each user gets independent limit)
-        return f"browser-ip:{get_remote_address()}"
-    
-    # External API clients: rate limit by API key hash
-    if api_key and len(api_key) >= 16:
-        # Rate limit by API key hash (prevents key exposure in rate limit storage)
-        return f"apikey:{hash_api_key(api_key)}"
-    
-    # No API key or invalid: fall back to IP-based rate limiting
-    return f"ip:{get_remote_address()}"
-
-
-def make_rate_limit(browser_limit, api_limit):
-    """
-    Create a rate limit function that returns different limits for browser vs API clients.
-
-    Browser users (using the shared API_KEY) get more generous limits for interactive UI.
-    External API clients get stricter limits to prevent abuse and scraping.
-
-    Args:
-        browser_limit: Limit string for browser users (e.g., "60 per minute")
-        api_limit: Limit string for external API clients (e.g., "10 per minute")
-
-    Returns:
-        Function that returns the appropriate limit string for the current request
-    """
-    def get_limit():
-        api_key = request.headers.get('X-API-Key')
-        # Check if this is a browser user (using shared API_KEY)
-        if api_key == app.config.get('API_KEY'):
-            return browser_limit
-        # External API client
-        return api_limit
-    return get_limit
-
 # Initialize rate limiter
 # Uses in-memory storage (no Redis required) - suitable for single-process deployments
 # For multi-process production with gunicorn, consider using Redis: storage_uri="redis://localhost:6379"
 limiter = Limiter(
     app=app,
-    key_func=get_rate_limit_key,  # Track by API key or IP address
-    default_limits=["200 per day", "50 per hour"],  # Global fallback limits
-    storage_uri="memory://",  # In-memory storage (no external database needed)
-    strategy="fixed-window"  # Simple time window strategy
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+    strategy="fixed-window"
 )
 
-# Initialize CSRF protection
-# Session-based requests (web browsers) require CSRF tokens
-# API key authenticated requests (external clients) are exempt
+# Initialize CSRF protection for POST endpoints
 csrf = CSRFProtect(app)
 
 
@@ -305,24 +223,6 @@ def get_latest_reference_month(db):
         .first()
     )
     return latest_month[0] if latest_month else None
-
-
-def hash_api_key(api_key):
-    """
-    Create a consistent hash for API key logging.
-
-    Instead of logging the first 8 characters of the API key (which could aid
-    brute force attacks), we hash the key and log the first 16 characters of
-    the hash. This provides a unique identifier for logging without exposing
-    any part of the actual key.
-
-    Args:
-        api_key: The API key string to hash
-
-    Returns:
-        str: First 16 characters of the SHA-256 hash
-    """
-    return hashlib.sha256(api_key.encode()).hexdigest()[:16]
 
 
 def sanitize_like_pattern(text):
@@ -482,130 +382,6 @@ def validate_date_range(start_date_str, end_date_str, allow_none=True):
     return start_date, end_date, None
 
 
-def require_api_key(f):
-    """
-    Decorator to require authentication via session (for web browsers) or API key (for external clients).
-
-    Authentication methods (checked in order):
-    1. Session-based auth (for web browsers) - checks for 'authenticated' in session
-       - Also validates CSRF token for state-changing methods (POST, PUT, DELETE, PATCH)
-    2. API key auth (for external clients) - checks X-API-Key header
-       - No CSRF validation needed as API keys are not vulnerable to CSRF
-
-    Returns 401 Unauthorized if neither authentication method succeeds.
-    Returns 403 Forbidden if CSRF validation fails.
-    """
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check for session-based authentication first (web browsers)
-        if session.get('authenticated'):
-            # Validate CSRF token for state-changing methods
-            if request.method in ['POST', 'PUT', 'DELETE', 'PATCH']:
-                try:
-                    # Get CSRF token from header or form data
-                    csrf_token = request.headers.get('X-CSRFToken') or request.form.get('csrf_token')
-                    validate_csrf(csrf_token)
-                except ValidationError:
-                    app.logger.warning(f'CSRF validation failed from {request.remote_addr} for {request.path}')
-                    return jsonify({
-                        'error': 'CSRF validation failed',
-                        'message': 'Invalid or missing CSRF token'
-                    }), 403
-            
-            # Validate session hasn't expired
-            created_at = session.get('created_at')
-            if created_at:
-                try:
-                    created = datetime.fromisoformat(created_at)
-                    age = datetime.now() - created
-                    max_age = timedelta(days=7)  # Match PERMANENT_SESSION_LIFETIME
-
-                    if age > max_age:
-                        # Session expired - clear it
-                        session.clear()
-                        app.logger.warning(
-                            f'Expired session rejected: age={age.days} days from {request.remote_addr}'
-                        )
-                        return jsonify({
-                            'error': 'Session expired',
-                            'message': 'Your session has expired. Please reload the page.'
-                        }), 401
-                except (ValueError, TypeError) as e:
-                    # Invalid created_at timestamp - clear session for security
-                    app.logger.warning(
-                        f'Invalid session timestamp from {request.remote_addr}: {e}'
-                    )
-                    session.clear()
-                    return jsonify({
-                        'error': 'Invalid session',
-                        'message': 'Your session is invalid. Please reload the page.'
-                    }), 401
-
-            app.logger.debug(f'Session access granted: endpoint={request.path} method={request.method} ip={request.remote_addr}')
-            return f(*args, **kwargs)
-
-        # Fall back to API key authentication (external clients)
-        api_key = request.headers.get('X-API-Key')
-
-        # If no API keys are configured, handle based on environment
-        if not VALID_API_KEYS:
-            # STRICT MODE: Never allow access without keys in production
-            is_production = app.config.get('ENV') == 'production' or os.getenv('FLASK_ENV') == 'production'
-
-            if is_production:
-                app.logger.critical('SECURITY: No API keys configured in production! Denying access.')
-                return jsonify({
-                    'error': 'Service unavailable',
-                    'message': 'Authentication system not configured'
-                }), 503
-            else:
-                app.logger.warning(
-                    'DEVELOPMENT MODE: No API keys configured - allowing access. '
-                    'THIS MUST NOT HAPPEN IN PRODUCTION!'
-                )
-                return f(*args, **kwargs)
-
-        # Check if API key is provided
-        if not api_key:
-            return jsonify({
-                'error': 'Authentication required',
-                'message': 'Please authenticate via session or provide an API key in the X-API-Key header'
-            }), 401
-
-        # Reject suspiciously short API keys immediately
-        if len(api_key) < 16:
-            app.logger.warning(
-                f'Suspiciously short API key attempt ({len(api_key)} chars) '
-                f'from {request.remote_addr} accessing {request.path}'
-            )
-            return jsonify({
-                'error': 'Invalid API key',
-                'message': 'The provided API key is not valid'
-            }), 401
-
-        # Check if API key is valid using constant-time comparison
-        # This prevents timing attacks where attackers measure response times
-        # to determine if they're getting closer to a valid key
-        is_valid = any(
-            hmac.compare_digest(api_key, valid_key)
-            for valid_key in VALID_API_KEYS
-        )
-
-        if not is_valid:
-            # SECURITY: Hash the invalid key instead of logging partial plaintext
-            app.logger.warning(f'Invalid API key attempt: key_hash={hash_api_key(api_key)} from {request.remote_addr} accessing {request.path}')
-            return jsonify({
-                'error': 'Invalid API key',
-                'message': 'The provided API key is not valid'
-            }), 401
-
-        # API key is valid, log successful access and proceed with the request
-        app.logger.info(f'API access granted: key_hash={hash_api_key(api_key)} endpoint={request.path} method={request.method} ip={request.remote_addr}')
-        return f(*args, **kwargs)
-
-    return decorated_function
-
-
 # ============================================================================
 # ERROR HANDLERS
 # ============================================================================
@@ -711,36 +487,16 @@ def index():
 
     Renders the index.html template with the default car information.
     The template will then load the actual data via JavaScript API calls.
-
-    This route establishes an authenticated session for the web browser,
-    eliminating the need to expose API keys in the HTML source code.
     """
     # Generate CSP nonce for this request (needed before rendering template)
     if not hasattr(g, 'csp_nonce'):
         g.csp_nonce = secrets.token_urlsafe(16)
-    
-    # Regenerate session ID on authentication to prevent session fixation
-    if not session.get('authenticated'):
-        # Clear any existing session data (prevents session fixation attack)
-        session.clear()
-
-        # Create new authenticated session
-        session['authenticated'] = True
-        session['created_at'] = datetime.now().isoformat()
-        session.permanent = True  # Use permanent session (configurable lifetime)
-        session.modified = True  # Force session to be saved with new ID
-
-        app.logger.info(f'New web session created from {request.remote_addr}')
-    else:
-        # Session already exists, just access the page
-        app.logger.debug(f'Existing session access from {request.remote_addr}')
 
     return render_template(
         'index.html',
         default_brand=app.config.get('DEFAULT_BRAND', 'Volkswagen'),
         default_model=app.config.get('DEFAULT_MODEL', 'Gol'),
         ga_measurement_id=app.config.get('GA_MEASUREMENT_ID', '')
-        # API key is NO LONGER passed to the template
     )
 
 
@@ -768,7 +524,6 @@ def health():
     Health check endpoint for monitoring and load balancers.
 
     Returns JSON with service status and basic diagnostics.
-    Does NOT require API key authentication.
 
     Returns:
         200: Service is healthy
@@ -858,8 +613,7 @@ def sitemap_xml():
 # ============================================================================
 
 @app.route('/api/brands', methods=['GET'])
-@require_api_key
-@limiter.limit(make_rate_limit("120 per minute", "60 per minute"))
+@limiter.limit("120 per minute")
 def get_brands():
     """
     Get all available car brands that have models in the latest reference month.
@@ -909,8 +663,7 @@ def get_brands():
 
 
 @app.route('/api/vehicle-options/<int:brand_id>', methods=['GET'])
-@require_api_key
-@limiter.limit(make_rate_limit("120 per minute", "60 per minute"))
+@limiter.limit("120 per minute")
 def get_vehicle_options(brand_id):
     """
     Get all models and years for a brand with cross-filtering mappings,
@@ -1046,8 +799,7 @@ def get_vehicle_options(brand_id):
 
 
 @app.route('/api/months', methods=['GET'])
-@require_api_key
-@limiter.limit(make_rate_limit("120 per minute", "60 per minute"))
+@limiter.limit("120 per minute")
 def get_months():
     """
     Get all available reference months from the database.
@@ -1100,9 +852,7 @@ def get_months():
 
 
 @app.route('/api/compare-vehicles', methods=['POST'])
-@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
-@require_api_key
-@limiter.limit(make_rate_limit("30 per minute", "10 per minute"))
+@limiter.limit("30 per minute")
 def compare_vehicles():
     """
     Get price history data for multiple vehicles for comparison.
@@ -1230,9 +980,7 @@ def compare_vehicles():
 
 
 @app.route('/api/price', methods=['POST'])
-@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
-@require_api_key
-@limiter.limit(make_rate_limit("60 per minute", "20 per minute"))
+@limiter.limit("60 per minute")
 def get_price():
     """
     Get price information for a specific car at a specific month.
@@ -1358,8 +1106,7 @@ def get_price():
 
 
 @app.route('/api/default-car', methods=['GET'])
-@require_api_key
-@limiter.limit(make_rate_limit("120 per minute", "60 per minute"))
+@limiter.limit("120 per minute")
 def get_default_car():
     """
     Get the default car to display when the page loads.
@@ -1386,6 +1133,7 @@ def get_default_car():
 
         default_brand = app.config.get('DEFAULT_BRAND', 'Volkswagen')
         default_model = app.config.get('DEFAULT_MODEL', 'Gol')
+        default_year = app.config.get('DEFAULT_YEAR', '')
 
         # Find the brand that has data in the latest month
         brand = (
@@ -1452,8 +1200,8 @@ def get_default_car():
         if not model:
             return jsonify({"error": "No models found for default brand in latest month"}), 404
 
-        # Find the most recent year for this model with data in latest month
-        year = (
+        # Find the year for this model with data in latest month
+        year_query = (
             db.query(ModelYear)
             .join(ModelYear.prices)
             .join(CarPrice.reference_month)
@@ -1462,9 +1210,18 @@ def get_default_car():
                 ReferenceMonth.month_date == latest_month
             )
             .distinct()
-            .order_by(ModelYear.year_description.desc())
-            .first()
         )
+
+        if default_year:
+            year = year_query.filter(
+                ModelYear.year_description == default_year
+            ).first()
+        else:
+            year = None
+
+        # Fallback to the most recent year if configured year not found
+        if not year:
+            year = year_query.order_by(ModelYear.year_description.desc()).first()
 
         if not year:
             return jsonify({"error": "No years found for default model in latest month"}), 404
@@ -1483,9 +1240,7 @@ def get_default_car():
 
 
 @app.route('/api/economic-indicators', methods=['POST'])
-@csrf.exempt  # Exempt from global CSRF - @require_api_key handles CSRF for session auth
-@require_api_key
-@limiter.limit(make_rate_limit("60 per minute", "60 per hour"))
+@limiter.limit("60 per minute")
 def get_economic_indicators():
     """
     Get economic indicators (IPCA and CDI) from Banco Central do Brasil API
@@ -1584,8 +1339,7 @@ def get_economic_indicators():
 
 
 @app.route('/api/depreciation-analysis', methods=['GET'])
-@require_api_key
-@limiter.limit(make_rate_limit("20 per minute", "10 per minute"))
+@limiter.limit("20 per minute")
 def get_depreciation_analysis():
     """
     Get market-wide depreciation analysis by brand, model, and year groups.
